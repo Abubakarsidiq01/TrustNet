@@ -1,13 +1,18 @@
 "use client";
 
 /* Referral graph viewer shell – UI per wireframe, with placeholder canvas */
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useGraphStore } from "@/store/graph-store";
+import { ReferralGraph } from "@/components/referral-graph";
+import { useState } from "react";
 
 export default function GraphPage() {
-  const { filters } = useGraphStore();
+  const { filters, setFilters } = useGraphStore();
+  const router = useRouter();
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   return (
     <div className="min-h-screen bg-neutral-50 px-4 py-6">
@@ -33,14 +38,38 @@ export default function GraphPage() {
         <div className="grid gap-4 lg:grid-cols-[minmax(0,2.3fr),minmax(0,1fr)]">
           {/* Graph canvas */}
           <Card className="relative min-h-[420px] bg-neutral-900/95 p-3 text-xs text-neutral-100">
-            <div className="absolute left-3 top-3 flex flex-col gap-1">
-              <Button size="sm" variant="outline" className="h-7 border-neutral-500 bg-neutral-900/70 text-[11px] text-neutral-100">
+            <div className="absolute left-3 top-3 z-10 flex flex-col gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 border-neutral-500 bg-neutral-900/80 backdrop-blur-sm text-[11px] text-neutral-100 hover:bg-neutral-800"
+                onClick={() => {
+                  // Zoom in functionality handled by vis-network
+                  setZoomLevel((prev) => Math.min(prev + 0.2, 2));
+                }}
+              >
                 + Zoom in
               </Button>
-              <Button size="sm" variant="outline" className="h-7 border-neutral-500 bg-neutral-900/70 text-[11px] text-neutral-100">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 border-neutral-500 bg-neutral-900/80 backdrop-blur-sm text-[11px] text-neutral-100 hover:bg-neutral-800"
+                onClick={() => {
+                  // Zoom out functionality handled by vis-network
+                  setZoomLevel((prev) => Math.max(prev - 0.2, 0.5));
+                }}
+              >
                 − Zoom out
               </Button>
-              <Button size="sm" variant="outline" className="mt-1 h-7 border-neutral-500 bg-neutral-900/70 text-[11px] text-neutral-100">
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-1 h-7 border-neutral-500 bg-neutral-900/80 backdrop-blur-sm text-[11px] text-neutral-100 hover:bg-neutral-800"
+                onClick={() => {
+                  // Fit to view - handled by vis-network physics
+                  setZoomLevel(1);
+                }}
+              >
                 Fit to view
               </Button>
             </div>
@@ -59,22 +88,19 @@ export default function GraphPage() {
               </div>
             </div>
 
-            {/* Placeholder for real graph component */}
-            <div className="flex h-full items-center justify-center text-center text-[11px] text-neutral-300">
-              <div className="max-w-xs space-y-2">
-                <p className="text-neutral-100">
-                  Referral graph will render here.
-                </p>
-                <p>
-                  Nodes: You (highlighted), workers and clients from your network.
-                  Hover to see tooltips. Click to open details.
-                </p>
-                <p className="text-neutral-400">
-                  Current filters: distance {filters.distance.toLowerCase()}, min trust{" "}
-                  {filters.minTrust}.
-                </p>
-              </div>
-            </div>
+            {/* Real graph component */}
+            <ReferralGraph
+              minTrust={filters.minTrust}
+              distance={filters.distance.toLowerCase()}
+              onNodeClick={(nodeId) => {
+                // Navigate to worker profile if it's a worker
+                if (nodeId.startsWith("john") || nodeId.startsWith("sade") || 
+                    nodeId.startsWith("tunde") || nodeId.startsWith("aisha") || 
+                    nodeId.startsWith("michael")) {
+                  router.push(`/workers/${nodeId}`);
+                }
+              }}
+            />
           </Card>
 
           {/* Right filters & details */}
@@ -93,10 +119,20 @@ export default function GraphPage() {
                   Distance from you
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {["You", "One step", "Two steps", "All"].map((label) => (
+                  {[
+                    { label: "You", value: "YOU" as const },
+                    { label: "One step", value: "ONE" as const },
+                    { label: "Two steps", value: "TWO" as const },
+                    { label: "All", value: "ALL" as const },
+                  ].map(({ label, value }) => (
                     <button
-                      key={label}
-                      className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[11px] text-neutral-700 hover:border-neutral-900"
+                      key={value}
+                      onClick={() => setFilters({ ...filters, distance: value })}
+                      className={`rounded-full border-2 px-3 py-1 text-[11px] font-semibold transition-all ${
+                        filters.distance === value
+                          ? "border-teal-500 bg-teal-50 text-teal-700"
+                          : "border-neutral-200 bg-neutral-50 text-neutral-700 hover:border-teal-300"
+                      }`}
                     >
                       {label}
                     </button>
@@ -113,9 +149,13 @@ export default function GraphPage() {
                   type="range"
                   min={0}
                   max={100}
-                  defaultValue={filters.minTrust}
+                  value={filters.minTrust}
+                  onChange={(e) => setFilters({ ...filters, minTrust: parseInt(e.target.value) })}
                   className="w-full"
                 />
+                <div className="text-center text-xs font-semibold text-teal-600">
+                  {filters.minTrust}
+                </div>
                 <div className="flex justify-between text-[11px] text-neutral-500">
                   <span>0</span>
                   <span>100</span>
