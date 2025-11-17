@@ -1,22 +1,72 @@
- "use client";
-import Link from "next/link";
+"use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-
-type Role = "CLIENT" | "WORKER";
+import { useUserStore } from "@/store/user-store";
+import type { AuthUser, UserRole } from "@/lib/types";
+type AuthMode = "signin" | "signup";
 
 export default function SignInPage() {
   const router = useRouter();
-  const [role, setRole] = useState<Role>("CLIENT");
+  const { setUser } = useUserStore();
+  const [mode, setMode] = useState<AuthMode>("signin");
+  const [role, setRole] = useState<UserRole>("CLIENT");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (role === "CLIENT") {
-      router.push("/dashboard/client");
-    } else {
-      router.push("/dashboard/worker");
+    setError(null);
+    setSuccess(null);
+
+    if (!email || !password || (mode === "signup" && !name)) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+    const endpoint = mode === "signup" ? "/api/auth/sign-up" : "/api/auth/sign-in";
+    const payload =
+      mode === "signup"
+        ? { email, password, name, role }
+        : {
+            email,
+            password,
+          };
+
+    try {
+      setLoading(true);
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.message ?? "Something went wrong. Try again.");
+      }
+
+      const user: AuthUser = data.user;
+      setUser(user);
+      localStorage.setItem("trustnet:user", JSON.stringify(user));
+      setSuccess(mode === "signup" ? "Account created. Redirecting..." : "Welcome back!");
+
+      router.push("/");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Unable to complete the request. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -54,48 +104,59 @@ export default function SignInPage() {
             <span className="rounded-full bg-slate-900 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-100">
               Sign in
             </span>
-            <Link
-              href="/"
-              className="text-[11px] text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
-            >
-              Back to home
-            </Link>
           </div>
 
           <h2 className="text-lg font-semibold text-slate-900">
-            Welcome back
+            {mode === "signin" ? "Welcome back" : "Create your account"}
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            Continue as a client to find trusted workers, or as a worker to
-            manage your referrals and verified jobs.
+            {mode === "signin"
+              ? "Sign in with your email and password to continue."
+              : "Create an account to start building and viewing your trust network."}
           </p>
 
-          <div className="mt-4 flex gap-2 text-[11px]">
-            <button
-              type="button"
-              onClick={() => setRole("CLIENT")}
-              className={`rounded-full px-3 py-1 ${
-                role === "CLIENT"
-                  ? "bg-slate-900 text-slate-50"
-                  : "bg-slate-100 text-slate-700"
-              }`}
-            >
-              Client
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("WORKER")}
-              className={`rounded-full px-3 py-1 ${
-                role === "WORKER"
-                  ? "bg-slate-900 text-slate-50"
-                  : "bg-slate-100 text-slate-700"
-              }`}
-            >
-              Worker
-            </button>
-          </div>
+          {mode === "signup" && (
+            <div className="mt-3 flex gap-2 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setRole("CLIENT")}
+                className={`rounded-full px-3 py-1 ${
+                  role === "CLIENT" ? "bg-slate-900 text-slate-50" : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                Client
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("WORKER")}
+                className={`rounded-full px-3 py-1 ${
+                  role === "WORKER" ? "bg-slate-900 text-slate-50" : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                Worker
+              </button>
+            </div>
+          )}
 
           <form className="mt-5 space-y-3" onSubmit={handleSubmit}>
+            {mode === "signup" && (
+              <div className="space-y-1 text-sm">
+                <label
+                  htmlFor="fullName"
+                  className="block text-xs font-medium text-slate-800"
+                >
+                  Full name
+                </label>
+                <input
+                  id="fullName"
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-0 transition focus:border-teal-700"
+                  placeholder="Jane Doe"
+                />
+              </div>
+            )}
             <div className="space-y-1 text-sm">
               <label
                 htmlFor="email"
@@ -106,6 +167,8 @@ export default function SignInPage() {
               <input
                 id="email"
                 type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-0 transition focus:border-teal-700"
                 placeholder="you@example.com"
               />
@@ -120,29 +183,61 @@ export default function SignInPage() {
               <input
                 id="password"
                 type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-0 transition focus:border-teal-700"
                 placeholder="••••••••"
               />
             </div>
-            <button
-              type="button"
-              className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-800"
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-medium text-red-700">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-medium text-emerald-700">
+                {success}
+              </div>
+            )}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={
+                loading || !email || !password || (mode === "signup" && !name.trim())
+              }
             >
-              Use one time code instead
-            </button>
-            <Button type="submit" className="w-full">
-              Continue as {role === "CLIENT" ? "client" : "worker"}
+              {loading
+                ? "Please wait..."
+                : mode === "signin"
+                  ? "Continue"
+                  : "Create account"}
             </Button>
           </form>
 
           <div className="mt-4 text-center text-xs text-slate-500">
-            <span>Need an account? </span>
-            <Link
-              href="/onboarding"
-              className="font-medium text-slate-900 underline-offset-2 hover:underline"
-            >
-              Create account
-            </Link>
+            {mode === "signin" ? (
+              <>
+                <span>Need an account?</span>{" "}
+                <button
+                  type="button"
+                  onClick={() => setMode("signup")}
+                  className="font-semibold text-slate-900 underline-offset-2 hover:underline"
+                >
+                  Create one
+                </button>
+              </>
+            ) : (
+              <>
+                <span>Already have an account?</span>{" "}
+                <button
+                  type="button"
+                  onClick={() => setMode("signin")}
+                  className="font-semibold text-slate-900 underline-offset-2 hover:underline"
+                >
+                  Sign in
+                </button>
+              </>
+            )}
           </div>
         </Card>
       </div>

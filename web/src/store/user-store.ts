@@ -1,18 +1,16 @@
 import { create } from "zustand";
-import type { UserRole } from "@/lib/types";
+import type { AuthUser } from "@/lib/types";
 
 interface UserState {
-  role: UserRole | null;
-  name: string | null;
-  setRole: (role: UserRole) => void;
-  setName: (name: string) => void;
+  user: AuthUser | null;
+  setUser: (user: AuthUser) => void;
+  clearUser: () => void;
 }
 
 export const useUserStore = create<UserState>((set) => ({
-  role: null,
-  name: null,
-  setRole: (role) => set({ role }),
-  setName: (name) => set({ name }),
+  user: null,
+  setUser: (user) => set({ user }),
+  clearUser: () => set({ user: null }),
 }));
 
 

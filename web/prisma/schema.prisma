@@ -3,13 +3,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
+  name      String
+  passwordHash String
   role      UserRole
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -28,7 +30,7 @@ model WorkerProfile {
   city      String
   area      String
   bio       String? 
-  skills    String[]
+  skills    Json?
   radiusKm  Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

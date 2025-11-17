@@ -28,4 +28,13 @@ export interface NetworkStats {
   reviewsWritten: number;
 }
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  createdAt: string;
+  updatedAt: string;
+}
+
 

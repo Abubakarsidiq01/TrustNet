@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Data, Network, Options } from "vis-network";
+import { useEffect, useRef } from "react";
+import { Data, Edge, Network, Node, Options } from "vis-network";
 import { sampleWorkers } from "@/lib/sample-data";
-import type { WorkerSummary } from "@/lib/types";
 
 interface ReferralGraphProps {
   minTrust?: number;
@@ -27,7 +26,6 @@ export function ReferralGraph({
 }: ReferralGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const networkRef = useRef<Network | null>(null);
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -49,7 +47,7 @@ export function ReferralGraph({
     // "all" shows all filtered workers
 
     // Create nodes
-    const nodes: any[] = [
+    const nodes: Node[] = [
       {
         id: "you",
         label: "You",
@@ -95,7 +93,7 @@ export function ReferralGraph({
     });
 
     // Create edges based on pathToYou
-    const edges: any[] = [];
+    const edges: Edge[] = [];
     
     // Connect "You" to first-level clients
     const firstLevelClients = ["aisha", "chidi", "hassan", "amaka"];
@@ -194,7 +192,6 @@ export function ReferralGraph({
     network.on("click", (params) => {
       if (params.nodes.length > 0) {
         const nodeId = params.nodes[0] as string;
-        setSelectedNode(nodeId);
         if (onNodeClick && nodeId !== "you" && !sampleClients.find((c) => c.id === nodeId)) {
           onNodeClick(nodeId);
         }
@@ -202,7 +199,7 @@ export function ReferralGraph({
     });
 
     // Handle hover
-    network.on("hoverNode", (params) => {
+    network.on("hoverNode", () => {
       containerRef.current!.style.cursor = "pointer";
     });
 

@@ -1,19 +1,115 @@
+"use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { WorkerCard } from "@/components/worker-card";
 import { sampleNetworkStats, sampleWorkers } from "@/lib/sample-data";
+import { useUserStore } from "@/store/user-store";
+import type { AuthUser } from "@/lib/types";
 
 export default function ClientDashboardPage() {
   const stats = sampleNetworkStats;
   const workers = sampleWorkers;
+  const router = useRouter();
+  const { user, setUser } = useUserStore();
+  const [hydrated, setHydrated] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  useEffect(() => {
+    if (hydrated) return;
+
+    try {
+      const stored = window.localStorage.getItem("trustnet:user");
+      if (stored) {
+        const parsed: AuthUser = JSON.parse(stored);
+        setUser(parsed);
+      }
+    } catch {
+      window.localStorage.removeItem("trustnet:user");
+    } finally {
+      setHydrated(true);
+    }
+  }, [hydrated, setUser]);
+
+  useEffect(() => {
+    if (!hydrated || !user?.id) {
+      setLoadingProfile(false);
+      return;
+    }
+
+    let active = true;
+
+    async function refreshProfile() {
+      try {
+        const response = await fetch(`/api/users/${user.id}`);
+        if (!response.ok) {
+          throw new Error("Unable to fetch profile");
+        }
+        const data = (await response.json()) as { user: AuthUser };
+        if (!active) return;
+        setUser(data.user);
+        window.localStorage.setItem("trustnet:user", JSON.stringify(data.user));
+      } catch (err) {
+        if (!active) return;
+        console.warn("Unable to refresh profile", err);
+      } finally {
+        if (active) {
+          setLoadingProfile(false);
+        }
+      }
+    }
+
+    refreshProfile();
+
+    return () => {
+      active = false;
+    };
+  }, [hydrated, setUser, user?.id]);
+
+  useEffect(() => {
+    if (hydrated && !loadingProfile && !user?.id) {
+      router.push("/auth/sign-in");
+    }
+  }, [hydrated, loadingProfile, router, user?.id]);
+
+  if (!hydrated || loadingProfile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <Card className="w-full max-w-sm text-center text-sm text-slate-600">
+          Loading your dashboard...
+        </Card>
+      </div>
+    );
+  }
+
+  if (!user?.id) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <Card className="w-full max-w-sm space-y-3 text-center">
+          <p className="text-sm font-semibold text-slate-900">
+            We need you to sign in again.
+          </p>
+          <p className="text-xs text-slate-600">
+            Your session expired. Please sign in to load your dashboard.
+          </p>
+          <Link href="/auth/sign-in">
+            <Button className="w-full">Go to sign in</Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
+
+  const firstName = user.name.split(" ")[0] ?? user.name;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-teal-50/30 px-4 py-6">
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <header className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
-            Good evening, Abubakar
+            Welcome back, {firstName}
           </h1>
           <p className="text-sm text-slate-600">
             See who your network trusts before you hire.

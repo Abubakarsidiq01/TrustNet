@@ -12,7 +12,7 @@ import { useState } from "react";
 export default function GraphPage() {
   const { filters, setFilters } = useGraphStore();
   const router = useRouter();
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [, setZoomLevel] = useState(1);
 
   return (
     <div className="min-h-screen bg-neutral-50 px-4 py-6">

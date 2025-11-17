@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 "use client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -159,7 +158,7 @@ export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
                   location: "Surulere",
                   initials: "KT",
                 },
-              ].map((job, idx) => (
+              ].map((job) => (
                 <div
                   key={job.title}
                   className="flex items-center justify-between gap-4 rounded-xl border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-50 to-teal-50 p-4 shadow-sm"

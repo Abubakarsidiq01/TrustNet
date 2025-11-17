@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { GraphPreview } from "@/components/graph-preview";
 import { sampleWorkers } from "@/lib/sample-data";
+import { ProfileButton } from "@/components/profile-button";
 
 export default function Home() {
   const john = sampleWorkers[0];
@@ -34,12 +35,7 @@ export default function Home() {
             </a>
           </nav>
           <div className="flex items-center gap-3 text-sm">
-            <Link
-              href="/auth/sign-in"
-              className="text-slate-200 hover:text-white"
-            >
-              Sign in
-            </Link>
+            <ProfileButton />
             <Link href="/search">
               <Button size="sm" className="px-5">
                 Get started
