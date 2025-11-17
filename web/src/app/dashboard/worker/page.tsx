@@ -7,32 +7,38 @@ export default function WorkerDashboardPage() {
   const worker = sampleWorkers[0];
 
   return (
-    <div className="min-h-screen bg-neutral-50 px-4 py-6">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-lg font-semibold text-neutral-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-teal-50/30 px-4 py-6">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6">
+        <header className="flex flex-col gap-2">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
             Welcome back, {worker.name.split(" ")[0]}
           </h1>
-          <p className="text-xs text-neutral-600">
+          <p className="text-sm text-slate-600">
             Grow your referrals and keep a clean record of your work.
           </p>
         </header>
 
         {/* Key metrics */}
-        <div className="grid gap-3 md:grid-cols-3">
-          <Card className="space-y-1">
-            <div className="text-xs text-neutral-600">Trust score</div>
-            <div className="text-2xl font-semibold text-neutral-900">
-              {worker.trust.total}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="bg-gradient-to-br from-teal-50 to-emerald-50 p-6 shadow-lg border-2 border-teal-200">
+            <div className="space-y-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-teal-700">Trust score</div>
+              <div className="text-4xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
+                {worker.trust.total}
+              </div>
             </div>
           </Card>
-          <Card className="space-y-1">
-            <div className="text-xs text-neutral-600">Referrals received</div>
-            <div className="text-2xl font-semibold text-neutral-900">5</div>
+          <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 shadow-lg border-2 border-blue-200">
+            <div className="space-y-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">Referrals received</div>
+              <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">5</div>
+            </div>
           </Card>
-          <Card className="space-y-1">
-            <div className="text-xs text-neutral-600">Verified jobs</div>
-            <div className="text-2xl font-semibold text-neutral-900">3</div>
+          <Card className="bg-gradient-to-br from-violet-50 to-purple-50 p-6 shadow-lg border-2 border-violet-200">
+            <div className="space-y-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-violet-700">Verified jobs</div>
+              <div className="text-4xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">3</div>
+            </div>
           </Card>
         </div>
 

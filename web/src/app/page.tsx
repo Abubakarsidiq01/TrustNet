@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,9 +11,16 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Global header */}
-      <header className="border-b border-slate-800/40 bg-slate-950/70 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="text-xl font-semibold tracking-tight text-slate-50">
+      <header className="border-b border-slate-800/40 bg-slate-950/80 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+          <div className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-slate-50">
+            <Image
+              src="/trustnet-logo.svg"
+              alt="TrustNet logo"
+              width={40}
+              height={40}
+              priority
+            />
             <span className="rounded-full border border-slate-500/40 bg-slate-900 px-3 py-1 text-sm text-slate-50">
               TrustNet
             </span>
@@ -46,6 +54,23 @@ export default function Home() {
           {/* Hero */}
           <section className="grid gap-12 md:grid-cols-2 md:items-center">
             <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/trustnet-logo.svg"
+                  alt="TrustNet mark"
+                  width={48}
+                  height={48}
+                  className="drop-shadow-md"
+                />
+                <div className="space-y-1">
+                  <div className="text-sm font-semibold tracking-tight text-slate-900">
+                    TrustNet
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Network-backed reputation for real-world work.
+                  </p>
+                </div>
+              </div>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">
               For people who do not trust random reviews
             </p>

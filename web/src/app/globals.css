@@ -8,6 +8,18 @@
   --accent: #0f766e; /* teal-700 */
   --accent-soft: #e0f2fe; /* sky-100 */
   --accent-strong: #0f766e;
+  /* Colorful palette */
+  --primary: #0f766e; /* teal-700 */
+  --primary-light: #14b8a6; /* teal-500 */
+  --primary-dark: #0d9488; /* teal-600 */
+  --secondary: #7c3aed; /* violet-600 */
+  --success: #10b981; /* emerald-500 */
+  --warning: #f59e0b; /* amber-500 */
+  --info: #3b82f6; /* blue-500 */
+  --danger: #ef4444; /* red-500 */
+  --gradient-1: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+  --gradient-2: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  --gradient-3: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
 }
 
 @theme inline {

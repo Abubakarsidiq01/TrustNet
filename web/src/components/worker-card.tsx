@@ -8,62 +8,79 @@ interface WorkerCardProps {
 }
 
 export function WorkerCard({ worker, showPath }: WorkerCardProps) {
+  const getTradeColor = (trade: string) => {
+    if (trade === "Electrician") return "bg-gradient-to-br from-amber-500 to-orange-600";
+    if (trade === "Plumber") return "bg-gradient-to-br from-blue-500 to-cyan-600";
+    if (trade === "Cleaner") return "bg-gradient-to-br from-emerald-500 to-teal-600";
+    return "bg-gradient-to-br from-violet-500 to-purple-600";
+  };
+
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-4 text-sm shadow-sm">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold text-neutral-700">
+    <div className="group flex flex-col justify-between rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 text-sm shadow-md transition-all hover:border-teal-400 hover:shadow-xl">
+      <div className="flex items-start gap-4">
+        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${getTradeColor(worker.trade)} text-xs font-bold text-white shadow-lg`}>
           {worker.name
             .split(" ")
             .map((n) => n[0])
             .join("")
             .slice(0, 2)}
         </div>
-        <div className="flex-1 space-y-1">
-          <div className="font-medium text-neutral-900">{worker.name}</div>
-          <div className="text-xs text-neutral-600">
-            {worker.trade} · {worker.locationLabel}
+        <div className="flex-1 space-y-1.5">
+          <div className="font-semibold text-slate-900">{worker.name}</div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="rounded-full bg-teal-100 px-2.5 py-0.5 font-medium text-teal-700">
+              {worker.trade}
+            </span>
+            <span className="text-slate-500">·</span>
+            <span className="text-slate-600">{worker.locationLabel}</span>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[11px] text-neutral-500">Trust score</div>
-          <div className="text-base font-semibold text-neutral-900">
+          <div className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Trust</div>
+          <div className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
             {worker.trust.total}
           </div>
         </div>
       </div>
-      <div className="mt-3 space-y-1 text-[11px] text-neutral-600">
-        <div>
-          Sentiment {worker.trust.sentiment} · Referrals {worker.trust.referrals} ·
-          Verified {worker.trust.verified}
+      <div className="mt-4 space-y-2 text-[11px]">
+        <div className="flex items-center gap-2 text-slate-600">
+          <span className="font-medium">Sentiment {worker.trust.sentiment}</span>
+          <span>·</span>
+          <span className="font-medium">Referrals {worker.trust.referrals}</span>
+          <span>·</span>
+          <span className="font-medium">Verified {worker.trust.verified}</span>
         </div>
-        <div className="flex flex-wrap gap-1">
-          <span className="text-[11px] font-medium text-neutral-700">
-            People say
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+            Tags:
           </span>
           {worker.sentimentTags.map((tag) => (
             <span
               key={tag}
-              className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px]"
+              className="rounded-full bg-gradient-to-r from-violet-100 to-purple-100 px-2.5 py-1 text-[10px] font-medium text-violet-700"
             >
               {tag}
             </span>
           ))}
         </div>
         {showPath && worker.pathToYou && (
-          <div className="text-[11px] text-neutral-500">
-            Path to you: {worker.pathToYou}
+          <div className="flex items-center gap-1.5 rounded-lg bg-blue-50 px-2.5 py-1 text-[10px] text-blue-700">
+            <span className="font-semibold">Path:</span>
+            <span>{worker.pathToYou}</span>
           </div>
         )}
       </div>
-      <div className="mt-3 flex items-center justify-between">
-        <Link href={`/workers/${worker.id}`}>
-          <Button size="sm">View profile</Button>
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <Link href={`/workers/${worker.id}`} className="flex-1">
+          <Button size="sm" className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700">
+            View profile
+          </Button>
         </Link>
         <Link
           href={`/graph?focus=${encodeURIComponent(worker.id)}`}
-          className="text-xs text-neutral-600 hover:text-neutral-900"
+          className="text-xs font-medium text-teal-600 underline-offset-2 hover:text-teal-700 hover:underline"
         >
-          View in graph
+          Graph →
         </Link>
       </div>
     </div>

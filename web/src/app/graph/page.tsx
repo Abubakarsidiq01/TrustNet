@@ -1,3 +1,5 @@
+"use client";
+
 /* Referral graph viewer shell – UI per wireframe, with placeholder canvas */
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
