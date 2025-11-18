@@ -1,19 +1,63 @@
 "use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ReviewModal } from "@/components/review-modal";
 import { CategoryStatsChart } from "@/components/category-stats-chart";
-import { getWorkersByTrade, sampleWorkers } from "@/lib/sample-data";
-import { useState } from "react";
+import type { WorkerSummary } from "@/lib/types";
 
 interface WorkerProfilePageProps {
   params: { id: string };
 }
 
+interface WorkerDetail extends WorkerSummary {
+  email?: string;
+}
+
 export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
-  const worker = sampleWorkers.find((w) => w.id === params.id);
+  const [worker, setWorker] = useState<WorkerDetail | null>(null);
+  const [peers, setPeers] = useState<WorkerSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [openReview, setOpenReview] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    async function fetchWorker() {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(`/api/workers/${params.id}`);
+        const payload = (await response.json()) as {
+          worker?: WorkerDetail;
+          peers?: WorkerSummary[];
+          message?: string;
+        };
+        if (!response.ok) {
+          throw new Error(payload?.message ?? "Unable to load worker.");
+        }
+        if (!active) return;
+        setWorker(payload.worker ?? null);
+        setPeers(payload.peers ?? []);
+      } catch (err) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Unable to load worker.");
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchWorker();
+
+    return () => {
+      active = false;
+    };
+  }, [params.id]);
 
   const getTradeColor = (trade: string) => {
     if (trade === "Electrician") return "from-amber-500 to-orange-600";
@@ -22,13 +66,23 @@ export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
     return "from-violet-500 to-purple-600";
   };
 
-  if (!worker) {
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-6">
+        <Card className="w-full max-w-md space-y-4 bg-white p-6 shadow-2xl">
+          <div className="text-lg font-bold text-slate-900">Loading worker...</div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!worker || error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 py-6">
         <Card className="w-full max-w-md space-y-4 bg-white p-6 shadow-2xl">
           <div className="text-lg font-bold text-slate-900">Worker not found</div>
           <p className="text-sm text-slate-600">
-            This profile does not exist in the current sample data.
+            {error ?? "This profile does not exist yet."}
           </p>
           <Link href="/search">
             <Button className="w-full bg-gradient-to-r from-teal-600 to-emerald-600">
@@ -39,8 +93,6 @@ export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
       </div>
     );
   }
-
-  const peers = getWorkersByTrade(worker.trade);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-teal-50/30 px-4 py-6">
@@ -290,7 +342,7 @@ export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
               </Link>
             </div>
             <div className="rounded-xl border-2 border-dashed border-blue-300 bg-white px-4 py-3 text-sm font-medium text-blue-700">
-              You → Aisha → Farouk → {worker.name}
+              {worker.pathToYou ?? "Connections will appear here once your network grows."}
             </div>
           </div>
         </Card>

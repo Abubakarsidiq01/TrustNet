@@ -1,13 +1,25 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { WorkerSummary } from "@/lib/types";
 
 interface WorkerCardProps {
   worker: WorkerSummary;
   showPath?: boolean;
+  actionLabel?: string;
+  actionDisabled?: boolean;
+  onAction?: () => void;
+  footerContent?: ReactNode;
 }
 
-export function WorkerCard({ worker, showPath }: WorkerCardProps) {
+export function WorkerCard({
+  worker,
+  showPath,
+  actionLabel,
+  actionDisabled,
+  onAction,
+  footerContent,
+}: WorkerCardProps) {
   const getTradeColor = (trade: string) => {
     if (trade === "Electrician") return "bg-gradient-to-br from-amber-500 to-orange-600";
     if (trade === "Plumber") return "bg-gradient-to-br from-blue-500 to-cyan-600";
@@ -71,17 +83,43 @@ export function WorkerCard({ worker, showPath }: WorkerCardProps) {
         )}
       </div>
       <div className="mt-4 flex items-center justify-between gap-2">
-        <Link href={`/workers/${worker.id}`} className="flex-1">
-          <Button size="sm" className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700">
-            View profile
-          </Button>
-        </Link>
-        <Link
-          href={`/graph?focus=${encodeURIComponent(worker.id)}`}
-          className="text-xs font-medium text-teal-600 underline-offset-2 hover:text-teal-700 hover:underline"
-        >
-          Graph →
-        </Link>
+        {footerContent ? (
+          <div className="w-full">{footerContent}</div>
+        ) : onAction ? (
+          <>
+            <Button
+              size="sm"
+              className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700"
+              onClick={onAction}
+              disabled={actionDisabled}
+            >
+              {actionLabel ?? "Hire"}
+            </Button>
+            <Link
+              href={`/graph?focus=${encodeURIComponent(worker.id)}`}
+              className="text-xs font-medium text-teal-600 underline-offset-2 hover:text-teal-700 hover:underline"
+            >
+              Graph →
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link href={`/workers/${worker.id}`} className="flex-1">
+              <Button
+                size="sm"
+                className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700"
+              >
+                Hire
+              </Button>
+            </Link>
+            <Link
+              href={`/graph?focus=${encodeURIComponent(worker.id)}`}
+              className="text-xs font-medium text-teal-600 underline-offset-2 hover:text-teal-700 hover:underline"
+            >
+              Graph →
+            </Link>
+          </>
+        )}
       </div>
     </div>
   );

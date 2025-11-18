@@ -1,6 +1,6 @@
 "use client";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useUserStore } from "@/store/user-store";
@@ -9,6 +9,7 @@ type AuthMode = "signin" | "signup";
 
 export default function SignInPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setUser } = useUserStore();
   const [mode, setMode] = useState<AuthMode>("signin");
   const [role, setRole] = useState<UserRole>("CLIENT");
@@ -18,6 +19,15 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    const initialMode = searchParams.get("mode");
+    if (initialMode === "signup") {
+      setMode("signup");
+    } else if (initialMode === "signin") {
+      setMode("signin");
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -58,7 +68,8 @@ export default function SignInPage() {
       localStorage.setItem("trustnet:user", JSON.stringify(user));
       setSuccess(mode === "signup" ? "Account created. Redirecting..." : "Welcome back!");
 
-      router.push("/");
+      const destination = user.role === "CLIENT" ? "/dashboard/client" : "/dashboard/worker";
+      router.push(destination);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -214,30 +225,39 @@ export default function SignInPage() {
             </Button>
           </form>
 
-          <div className="mt-4 text-center text-xs text-slate-500">
-            {mode === "signin" ? (
-              <>
-                <span>Need an account?</span>{" "}
-                <button
-                  type="button"
-                  onClick={() => setMode("signup")}
-                  className="font-semibold text-slate-900 underline-offset-2 hover:underline"
-                >
-                  Create one
-                </button>
-              </>
-            ) : (
-              <>
-                <span>Already have an account?</span>{" "}
-                <button
-                  type="button"
-                  onClick={() => setMode("signin")}
-                  className="font-semibold text-slate-900 underline-offset-2 hover:underline"
-                >
-                  Sign in
-                </button>
-              </>
-            )}
+          <div className="mt-4 space-y-2 text-center text-xs text-slate-500">
+            <div>
+              {mode === "signin" ? (
+                <>
+                  <span>Need an account?</span>{" "}
+                  <button
+                    type="button"
+                    onClick={() => setMode("signup")}
+                    className="font-semibold text-slate-900 underline-offset-2 hover:underline"
+                  >
+                    Create one
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span>Already have an account?</span>{" "}
+                  <button
+                    type="button"
+                    onClick={() => setMode("signin")}
+                    className="font-semibold text-slate-900 underline-offset-2 hover:underline"
+                  >
+                    Sign in
+                  </button>
+                </>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="font-semibold text-slate-400 underline-offset-2 hover:text-slate-600"
+            >
+              ← Back to home
+            </button>
           </div>
         </Card>
       </div>

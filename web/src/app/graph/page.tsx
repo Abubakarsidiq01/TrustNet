@@ -7,12 +7,46 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useGraphStore } from "@/store/graph-store";
 import { ReferralGraph } from "@/components/referral-graph";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { WorkerSummary } from "@/lib/types";
 
 export default function GraphPage() {
   const { filters, setFilters } = useGraphStore();
   const router = useRouter();
   const [, setZoomLevel] = useState(1);
+  const [workers, setWorkers] = useState<WorkerSummary[]>([]);
+  const [loadingWorkers, setLoadingWorkers] = useState(true);
+  const [workersError, setWorkersError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function fetchWorkers() {
+      try {
+        setLoadingWorkers(true);
+        setWorkersError(null);
+        const response = await fetch("/api/workers/summaries?limit=20");
+        const payload = (await response.json()) as { workers?: WorkerSummary[]; message?: string };
+        if (!response.ok) {
+          throw new Error(payload?.message ?? "Unable to load workers.");
+        }
+        if (!active) return;
+        setWorkers(payload.workers ?? []);
+      } catch (err) {
+        if (!active) return;
+        setWorkersError(err instanceof Error ? err.message : "Unable to load workers.");
+      } finally {
+        if (active) {
+          setLoadingWorkers(false);
+        }
+      }
+    }
+
+    fetchWorkers();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-neutral-50 px-4 py-6">
@@ -89,18 +123,24 @@ export default function GraphPage() {
             </div>
 
             {/* Real graph component */}
-            <ReferralGraph
-              minTrust={filters.minTrust}
-              distance={filters.distance.toLowerCase()}
-              onNodeClick={(nodeId) => {
-                // Navigate to worker profile if it's a worker
-                if (nodeId.startsWith("john") || nodeId.startsWith("sade") || 
-                    nodeId.startsWith("tunde") || nodeId.startsWith("aisha") || 
-                    nodeId.startsWith("michael")) {
+            {workersError ? (
+              <div className="flex h-full items-center justify-center text-sm text-red-400">
+                {workersError}
+              </div>
+            ) : loadingWorkers ? (
+              <div className="flex h-full items-center justify-center text-sm text-neutral-100">
+                Loading graph...
+              </div>
+            ) : (
+              <ReferralGraph
+                workers={workers}
+                minTrust={filters.minTrust}
+                distance={filters.distance.toLowerCase()}
+                onNodeClick={(nodeId) => {
                   router.push(`/workers/${nodeId}`);
-                }
-              }}
-            />
+                }}
+              />
+            )}
           </Card>
 
           {/* Right filters & details */}

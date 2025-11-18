@@ -37,4 +37,44 @@ export interface AuthUser {
   updatedAt: string;
 }
 
+export interface ClientProfileStats {
+  peopleEmployed: number;
+  jobsPosted: number;
+  employeeReviews: number;
+  peopleConnected: number;
+  workersVouching: number;
+  reviewsWritten: number;
+}
+
+export type ConnectionRequestStatus = "PENDING" | "ACCEPTED" | "DECLINED";
+
+export interface ConnectionProfileSummary {
+  requestId: string;
+  userId: string;
+  status: ConnectionRequestStatus;
+  summary: WorkerSummary;
+}
+
+export interface ConnectionRequestLists {
+  sent: ConnectionProfileSummary[];
+  received: ConnectionProfileSummary[];
+}
+
+export interface NetworkSearchResult {
+  userId: string;
+  summary: WorkerSummary;
+}
+
+export interface ConnectionNetworkEntry {
+  userId: string;
+  role: UserRole;
+  worker?: WorkerSummary;
+  client?: {
+    name: string;
+    city: string;
+    area: string;
+    stats: ClientProfileStats;
+  };
+}
+
 

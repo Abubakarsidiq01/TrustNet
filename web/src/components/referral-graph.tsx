@@ -1,25 +1,18 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Data, Edge, Network, Node, Options } from "vis-network";
-import { sampleWorkers } from "@/lib/sample-data";
+import type { WorkerSummary } from "@/lib/types";
 
 interface ReferralGraphProps {
+  workers: WorkerSummary[];
   minTrust?: number;
   distance?: "you" | "one" | "two" | "all";
   onNodeClick?: (nodeId: string) => void;
 }
 
-// Sample network data - clients and connections
-const sampleClients = [
-  { id: "aisha", name: "Aisha", type: "client" },
-  { id: "farouk", name: "Farouk", type: "client" },
-  { id: "chidi", name: "Chidi", type: "client" },
-  { id: "hassan", name: "Hassan", type: "client" },
-  { id: "amaka", name: "Amaka", type: "client" },
-];
-
 export function ReferralGraph({
+  workers,
   minTrust = 60,
   distance = "two",
   onNodeClick,
@@ -27,11 +20,26 @@ export function ReferralGraph({
   const containerRef = useRef<HTMLDivElement>(null);
   const networkRef = useRef<Network | null>(null);
 
+  const derivedClients = useMemo(() => {
+    const map = new Map<string, string>();
+    workers.forEach((worker) => {
+      const path = worker.pathToYou ?? "";
+      const parts = path.split("→").map((part) => part.trim());
+      if (parts.length >= 3) {
+        const clientName = parts[1];
+        if (clientName && clientName.toLowerCase() !== "you") {
+          map.set(clientName.toLowerCase(), clientName);
+        }
+      }
+    });
+    return map;
+  }, [workers]);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
     // Filter workers by trust score
-    const filteredWorkers = sampleWorkers.filter(
+    const filteredWorkers = workers.filter(
       (w) => w.trust.total >= minTrust
     );
 
@@ -59,11 +67,11 @@ export function ReferralGraph({
       },
     ];
 
-    // Add clients
-    sampleClients.forEach((client) => {
+    // Add clients derived from referral paths
+    derivedClients.forEach((label, id) => {
       nodes.push({
-        id: client.id,
-        label: client.name,
+        id,
+        label,
         color: { background: "#10b981", border: "#059669" },
         font: { color: "#fff", size: 12, face: "Lexend Deca" },
         shape: "circle",
@@ -96,8 +104,7 @@ export function ReferralGraph({
     const edges: Edge[] = [];
     
     // Connect "You" to first-level clients
-    const firstLevelClients = ["aisha", "chidi", "hassan", "amaka"];
-    firstLevelClients.forEach((clientId) => {
+    derivedClients.forEach((_, clientId) => {
       edges.push({
         from: "you",
         to: clientId,
@@ -111,12 +118,10 @@ export function ReferralGraph({
 
     // Connect clients to workers based on pathToYou
     workersToShow.forEach((worker) => {
-      const pathParts = worker.pathToYou.split(" → ");
+      const pathParts = worker.pathToYou?.split("→").map((part) => part.trim()) ?? [];
       if (pathParts.length >= 3) {
         const clientName = pathParts[1].toLowerCase();
-        const clientId = sampleClients.find(
-          (c) => c.name.toLowerCase() === clientName
-        )?.id;
+        const clientId = derivedClients.has(clientName) ? clientName : null;
 
         if (clientId) {
           edges.push({
@@ -128,23 +133,23 @@ export function ReferralGraph({
             label: "referred",
             font: { size: 10, color: "#34d399" },
           });
+          return;
         }
       }
-    });
 
-    // Some additional connections between clients
-    edges.push({
-      from: "aisha",
-      to: "farouk",
-      color: { color: "#a78bfa", highlight: "#8b5cf6" },
-      width: 1,
-      arrows: "to",
-      dashes: true,
-      label: "connected",
-      font: { size: 9, color: "#a78bfa" },
+      edges.push({
+        from: "you",
+        to: worker.id,
+        color: { color: "#34d399", highlight: "#10b981" },
+        width: 2,
+        arrows: "to",
+        label: "knows",
+        font: { size: 10, color: "#34d399" },
+      });
     });
 
     const data: Data = { nodes, edges };
+    const workerIds = new Set(workersToShow.map((worker) => worker.id));
 
     const options: Options = {
       nodes: {
@@ -192,7 +197,7 @@ export function ReferralGraph({
     network.on("click", (params) => {
       if (params.nodes.length > 0) {
         const nodeId = params.nodes[0] as string;
-        if (onNodeClick && nodeId !== "you" && !sampleClients.find((c) => c.id === nodeId)) {
+        if (onNodeClick && workerIds.has(nodeId)) {
           onNodeClick(nodeId);
         }
       }
@@ -212,7 +217,7 @@ export function ReferralGraph({
     return () => {
       network.destroy();
     };
-  }, [minTrust, distance, onNodeClick]);
+  }, [derivedClients, distance, minTrust, onNodeClick, workers]);
 
   return (
     <div

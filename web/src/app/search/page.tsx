@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { WorkerCard } from "@/components/worker-card";
-import { sampleWorkers } from "@/lib/sample-data";
+import { getWorkerSummaries } from "@/lib/workers";
 
-export default function SearchPage() {
-  const workers = sampleWorkers;
+export default async function SearchPage() {
+  const workers = await getWorkerSummaries();
   const selected = workers[0];
 
   return (
@@ -17,11 +17,10 @@ export default function SearchPage() {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
               Search workers
             </h1>
-            <Link
-              href="/dashboard/client"
-              className="text-sm font-medium text-slate-600 hover:text-teal-600 transition-colors"
-            >
-              ← Back to dashboard
+            <Link href="/dashboard/client">
+              <Button variant="outline" size="sm">
+                ← Back to dashboard
+              </Button>
             </Link>
           </div>
 
@@ -76,10 +75,12 @@ export default function SearchPage() {
             <div className="space-y-3">
               {workers.map((w) => (
                 <div key={w.id} className="space-y-1">
-                  <WorkerCard worker={w} showPath />
-                  <div className="text-[11px] text-neutral-600">
-                    Path to you: {w.pathToYou}
-                  </div>
+                  <WorkerCard worker={w} />
+                  {w.pathToYou && (
+                    <div className="text-[11px] text-neutral-600">
+                      Path to you: {w.pathToYou}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -93,15 +94,17 @@ export default function SearchPage() {
                   <div className="text-base font-bold text-slate-900">
                     How this worker connects to you
                   </div>
-                  <Link
-                    href={`/graph?focus=${encodeURIComponent(selected.id)}`}
-                    className="text-sm font-medium text-blue-600 underline-offset-2 hover:text-blue-700 hover:underline"
-                  >
-                    Full graph →
-                  </Link>
+                  {selected && (
+                    <Link
+                      href={`/graph?focus=${encodeURIComponent(selected.id)}`}
+                      className="text-sm font-medium text-blue-600 underline-offset-2 hover:text-blue-700 hover:underline"
+                    >
+                      Full graph →
+                    </Link>
+                  )}
                 </div>
                 <div className="rounded-xl border-2 border-dashed border-blue-300 bg-white px-4 py-3 text-sm font-semibold text-blue-700">
-                  You → Aisha → Farouk → {selected.name}
+                  {selected?.pathToYou ?? "Connections will appear here once your network grows."}
                 </div>
               </div>
             </Card>

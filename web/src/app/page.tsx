@@ -3,11 +3,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { GraphPreview } from "@/components/graph-preview";
-import { sampleWorkers } from "@/lib/sample-data";
 import { ProfileButton } from "@/components/profile-button";
+import { getWorkerSummaries } from "@/lib/workers";
 
-export default function Home() {
-  const john = sampleWorkers[0];
+export default async function Home() {
+  const workers = await getWorkerSummaries({ limit: 2 });
+  const featuredWorker = workers[0] ?? null;
+  const sampleWorker = workers[1] ?? featuredWorker;
 
   return (
     <div className="min-h-screen">
@@ -36,7 +38,7 @@ export default function Home() {
           </nav>
           <div className="flex items-center gap-3 text-sm">
             <ProfileButton />
-            <Link href="/search">
+            <Link href="/auth/sign-in?mode=signup">
               <Button size="sm" className="px-5">
                 Get started
               </Button>
@@ -78,25 +80,7 @@ export default function Home() {
                 cleaners and handymen that someone you actually know has hired
                 before — with jobs and short comments to back it up.
               </p>
-              <div className="flex flex-wrap gap-3 pt-3">
-              <Link href="/search">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto text-sm md:text-base"
-                  >
-                  Find trusted worker
-                </Button>
-              </Link>
-              <Link href="/onboarding/worker">
-                <Button
-                  variant="outline"
-                  size="lg"
-                    className="w-full sm:w-auto text-sm md:text-base"
-                >
-                  I am a worker
-                </Button>
-              </Link>
-            </div>
+              <div className="flex flex-wrap gap-3 pt-3" />
               <p className="text-xs text-slate-500">
               No public star spam. All referrals come from real people and verified jobs.
             </p>
@@ -122,39 +106,62 @@ export default function Home() {
                 </p>
               </Card>
 
-              <Card className="flex items-center justify-between gap-4 transition hover:-translate-y-0.5 hover:shadow-md">
-                <div className="space-y-2 text-sm">
-                  <div className="text-[13px] font-medium text-slate-500">
-                    Sample worker
+              {featuredWorker ? (
+                <Card className="flex items-center justify-between gap-4 transition hover:-translate-y-0.5 hover:shadow-md">
+                  <div className="space-y-2 text-sm">
+                    <div className="text-[13px] font-medium text-slate-500">
+                      Featured worker
+                    </div>
+                    <div className="text-base font-semibold text-slate-900">
+                      {featuredWorker.name}
+                    </div>
+                    <div className="text-xs text-neutral-600">
+                      {featuredWorker.trade} · {featuredWorker.locationLabel}
+                    </div>
+                    <div className="flex flex-wrap gap-1 pt-1 text-[11px] text-neutral-600">
+                      {featuredWorker.sentimentTags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px]"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="text-base font-semibold text-slate-900">
-                    {john.name}
+                  <div className="text-right">
+                    <div className="text-[11px] text-neutral-500">Trust score</div>
+                    <div className="text-2xl font-semibold text-neutral-900">
+                      {featuredWorker.trust.total}
+                    </div>
+                    <div className="mt-1 text-[11px] text-neutral-500">
+                      Sentiment {featuredWorker.trust.sentiment} · Referrals{" "}
+                      {featuredWorker.trust.referrals} · Verified {featuredWorker.trust.verified}
+                    </div>
                   </div>
-                  <div className="text-xs text-neutral-600">
-                    {john.trade} · {john.locationLabel}
+                </Card>
+              ) : (
+                <Card className="flex items-center justify-between gap-4 transition hover:-translate-y-0.5 hover:shadow-md">
+                  <div className="space-y-2 text-sm">
+                    <div className="text-[13px] font-medium text-slate-500">
+                      Featured worker
+                    </div>
+                    <div className="text-base font-semibold text-slate-900">
+                      Coming soon
+                    </div>
+                    <div className="text-xs text-neutral-600">
+                      We’ll highlight a trusted worker from your network here.
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-1 pt-1 text-[11px] text-neutral-600">
-                    {john.sentimentTags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full bg-neutral-100 px-2 py-0.5 text-[11px]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
+                  <div className="text-right">
+                    <div className="text-[11px] text-neutral-500">Trust score</div>
+                    <div className="text-2xl font-semibold text-neutral-900">—</div>
+                    <div className="mt-1 text-[11px] text-neutral-500">
+                      Sentiment — · Referrals — · Verified —
+                    </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[11px] text-neutral-500">Trust score</div>
-                  <div className="text-2xl font-semibold text-neutral-900">
-                    {john.trust.total}
-                  </div>
-                  <div className="mt-1 text-[11px] text-neutral-500">
-                    Sentiment {john.trust.sentiment} · Referrals{" "}
-                    {john.trust.referrals} · Verified {john.trust.verified}
-                  </div>
-                </div>
-              </Card>
+                </Card>
+              )}
             </div>
           </section>
 
@@ -229,20 +236,22 @@ export default function Home() {
             </div>
           </div>
 
-            <Card className="space-y-3 transition hover:-translate-y-0.5 hover:shadow-md">
-              <div className="text-[13px] font-semibold text-neutral-800">
-                This worker is two steps from you
-              </div>
-              <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-4 text-xs text-neutral-600">
-              <div className="flex flex-col gap-1">
-                <div>You → Aisha → Farouk → John (Electrician)</div>
-              </div>
-            </div>
-              <p className="text-xs text-neutral-500">
-                You see who first used them, who referred them on, and where you
-                sit in that chain.
-              </p>
-            </Card>
+            {sampleWorker && (
+              <Card className="space-y-3 transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="text-[13px] font-semibold text-neutral-800">
+                  This worker is {sampleWorker.inYourNetworkSteps ?? "a few"} steps from you
+                </div>
+                <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-4 text-xs text-neutral-600">
+                  <div className="flex flex-col gap-1">
+                    <div>{sampleWorker.pathToYou ?? "Connections will appear here once your network grows."}</div>
+                  </div>
+                </div>
+                <p className="text-xs text-neutral-500">
+                  You see who first used them, who referred them on, and where you
+                  sit in that chain.
+                </p>
+              </Card>
+            )}
           </section>
 
           {/* Sample worker profile teaser */}
@@ -257,9 +266,11 @@ export default function Home() {
             <div className="space-y-3 rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <div className="text-base font-medium">{john.name}</div>
+                  <div className="text-base font-medium">
+                    {sampleWorker?.name ?? "Your worker"}
+                  </div>
                   <div className="text-xs text-neutral-600">
-                    {john.trade} · {john.locationLabel}
+                    {sampleWorker ? `${sampleWorker.trade} · ${sampleWorker.locationLabel}` : "Trade · City"}
                   </div>
                 </div>
                 <div className="text-right">
@@ -267,19 +278,19 @@ export default function Home() {
                     Trust score
                   </div>
                   <div className="text-lg font-semibold">
-                    {john.trust.total}
+                    {sampleWorker?.trust.total ?? "—"}
                   </div>
                 </div>
               </div>
               <div className="space-y-1 text-[11px] text-neutral-600">
                 <div>
-                  Sentiment {john.trust.sentiment} · Referrals {john.trust.referrals} ·
-                  Verified {john.trust.verified}
+                  Sentiment {sampleWorker?.trust.sentiment ?? "—"} · Referrals{" "}
+                  {sampleWorker?.trust.referrals ?? "—"} · Verified {sampleWorker?.trust.verified ?? "—"}
                 </div>
               </div>
               <div className="space-y-1 text-xs">
                 <div className="font-medium text-neutral-800">
-                  3 recent verified jobs
+                  Recent verified jobs
                 </div>
                 <ul className="space-y-1 text-neutral-600">
                   <li>Flat rewiring · Ikeja · Jun 2024 · client A.O. confirmed</li>
@@ -288,13 +299,7 @@ export default function Home() {
                 </ul>
               </div>
             </div>
-            <div className="flex justify-end">
-              <Link href="/search">
-                <Button size="sm" variant="outline" className="px-4">
-                  View real profiles
-                </Button>
-              </Link>
-            </div>
+            <div className="flex justify-end" />
           </Card>
           </section>
 
@@ -304,25 +309,7 @@ export default function Home() {
               Before you call the next random number on Google, check who your
               own network already trusts.
             </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/search">
-              <Button
-                size="lg"
-                className="w-full text-sm sm:w-auto md:text-base"
-              >
-                Search your network
-              </Button>
-            </Link>
-            <Link href="/onboarding/worker">
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full text-sm sm:w-auto md:text-base"
-              >
-                Claim my worker profile
-              </Button>
-            </Link>
-          </div>
+          <div className="flex flex-wrap justify-center gap-3" />
           </section>
         </div>
       </main>

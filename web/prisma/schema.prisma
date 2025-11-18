@@ -19,6 +19,10 @@ model User {
   workerProfile WorkerProfile?
   clientProfile ClientProfile?
   reviews       Review[]        @relation("UserReviews")
+  connectionRequestsSent     ConnectionRequest[] @relation("ConnectionRequestsSent")
+  connectionRequestsReceived ConnectionRequest[] @relation("ConnectionRequestsReceived")
+  connectionsA               Connection[]        @relation("ConnectionsA")
+  connectionsB               Connection[]        @relation("ConnectionsB")
 }
 
 model WorkerProfile {
@@ -32,6 +36,8 @@ model WorkerProfile {
   bio       String? 
   skills    Json?
   radiusKm  Int?
+  pathToYou String?
+  networkSteps Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -134,6 +140,36 @@ enum ReviewVisibility {
   PUBLIC
   NETWORK_ONLY
   PRIVATE
+}
+
+model ConnectionRequest {
+  id         String                  @id @default(cuid())
+  sender     User                    @relation("ConnectionRequestsSent", fields: [senderId], references: [id])
+  senderId   String
+  receiver   User                    @relation("ConnectionRequestsReceived", fields: [receiverId], references: [id])
+  receiverId String
+  status     ConnectionRequestStatus @default(PENDING)
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+
+  @@unique([senderId, receiverId])
+}
+
+model Connection {
+  id      String @id @default(cuid())
+  userA   User   @relation("ConnectionsA", fields: [userAId], references: [id])
+  userAId String
+  userB   User   @relation("ConnectionsB", fields: [userBId], references: [id])
+  userBId String
+  createdAt DateTime @default(now())
+
+  @@unique([userAId, userBId])
+}
+
+enum ConnectionRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
 }
 
 

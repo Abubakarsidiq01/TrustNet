@@ -4,16 +4,36 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { sampleWorkers } from "@/lib/sample-data";
+import { WorkerCard } from "@/components/worker-card";
+import { ConnectionRequestsPanel } from "@/components/connection-requests-panel";
 import { useUserStore } from "@/store/user-store";
-import type { AuthUser } from "@/lib/types";
+import type { AuthUser, NetworkSearchResult } from "@/lib/types";
+
+interface DashboardStats {
+  trustScore: number;
+  referralsReceived: number;
+  verifiedJobs: number;
+}
 
 export default function WorkerDashboardPage() {
   const router = useRouter();
   const { user, setUser } = useUserStore();
-  const worker = sampleWorkers[0];
   const [hydrated, setHydrated] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [showConnectionsPanel, setShowConnectionsPanel] = useState(false);
+  const [connectionQuery, setConnectionQuery] = useState("");
+  const [connectionResults, setConnectionResults] = useState<NetworkSearchResult[]>([]);
+  const [connectionLoading, setConnectionLoading] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [connectionSendError, setConnectionSendError] = useState<string | null>(null);
+  const [connectionSuccess, setConnectionSuccess] = useState<string | null>(null);
+  const [sendingRequestId, setSendingRequestId] = useState<string | null>(null);
+  const [stats, setStats] = useState<DashboardStats>({
+    trustScore: 0,
+    referralsReceived: 0,
+    verifiedJobs: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     if (hydrated) return;
@@ -30,6 +50,11 @@ export default function WorkerDashboardPage() {
       setHydrated(true);
     }
   }, [hydrated, setUser]);
+
+  useEffect(() => {
+    setConnectionSuccess(null);
+    setConnectionSendError(null);
+  }, [connectionQuery]);
 
   useEffect(() => {
     if (!hydrated || !user?.id) {
@@ -72,7 +97,86 @@ export default function WorkerDashboardPage() {
     }
   }, [hydrated, loadingProfile, router, user?.id]);
 
-  if (!hydrated || loadingProfile) {
+  useEffect(() => {
+    const query = connectionQuery.trim();
+    if (query.length === 0) {
+      setConnectionResults([]);
+      setConnectionError(null);
+      setConnectionLoading(false);
+      return;
+    }
+
+    let active = true;
+    const controller = new AbortController();
+    setConnectionLoading(true);
+    setConnectionError(null);
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/network-search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        const payload = (await response.json()) as { results?: NetworkSearchResult[]; message?: string };
+        if (!response.ok) {
+          throw new Error(payload?.message ?? "Unable to search right now.");
+        }
+        if (!active) return;
+        setConnectionResults(payload.results ?? []);
+      } catch (error) {
+        if (!active || controller.signal.aborted) return;
+        setConnectionError(
+          error instanceof Error ? error.message : "Unable to search the network right now.",
+        );
+      } finally {
+        if (active) {
+          setConnectionLoading(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      active = false;
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [connectionQuery]);
+
+  // Fetch dashboard stats
+  useEffect(() => {
+    if (!hydrated || !user?.id || user.role !== "WORKER") {
+      setLoadingStats(false);
+      return;
+    }
+
+    let active = true;
+
+    async function fetchStats() {
+      try {
+        const response = await fetch(`/api/worker-dashboard-stats?userId=${user.id}`);
+        if (!response.ok) {
+          throw new Error("Unable to fetch dashboard stats");
+        }
+        const data = (await response.json()) as DashboardStats;
+        if (!active) return;
+        setStats(data);
+      } catch (err) {
+        if (!active) return;
+        console.warn("Unable to fetch dashboard stats", err);
+      } finally {
+        if (active) {
+          setLoadingStats(false);
+        }
+      }
+    }
+
+    fetchStats();
+
+    return () => {
+      active = false;
+    };
+  }, [hydrated, user?.id, user?.role]);
+
+  if (!hydrated || loadingProfile || loadingStats) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <Card className="w-full max-w-sm text-center text-sm text-slate-600">
@@ -102,17 +206,89 @@ export default function WorkerDashboardPage() {
 
   const displayName = user.name.split(" ")[0] ?? user.name;
 
+  async function handleSendConnectionRequest(result: NetworkSearchResult) {
+    if (!user?.id) {
+      setConnectionSendError("You need to be signed in to send connection requests.");
+      return;
+    }
+
+    if (result.userId === user.id) {
+      setConnectionSendError("You cannot send a request to yourself.");
+      return;
+    }
+
+    setSendingRequestId(result.userId);
+    setConnectionSendError(null);
+    setConnectionSuccess(null);
+    try {
+      const response = await fetch("/api/connections/requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          senderId: user.id,
+          receiverId: result.userId,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.message ?? "Unable to send connection request.");
+      }
+      setConnectionSuccess(`Connection request sent to ${result.summary.name}.`);
+    } catch (error) {
+      setConnectionSendError(
+        error instanceof Error
+          ? error.message
+          : "Unable to send connection request right now.",
+      );
+    } finally {
+      setSendingRequestId(null);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-teal-50/30 px-4 py-6">
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <header className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
-            Welcome back, {displayName}
-          </h1>
-          <p className="text-sm text-slate-600">
-            Grow your referrals and keep a clean record of your work.
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
+                Welcome back, {displayName}
+              </h1>
+              <p className="text-sm text-slate-600">
+                Grow your referrals and keep a clean record of your work.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowConnectionsPanel((prev) => !prev)}
+              >
+                {showConnectionsPanel ? "Hide connections" : "Connections"}
+              </Button>
+              <Link href="/profile">
+                <Button size="sm" className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700">
+                  View Profile
+                </Button>
+              </Link>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  useUserStore.getState().clearUser();
+                  window.localStorage.removeItem("trustnet:user");
+                  router.push("/auth/sign-in");
+                }}
+              >
+                Sign Out
+              </Button>
+            </div>
+          </div>
         </header>
+
+        {showConnectionsPanel && <ConnectionRequestsPanel userId={user.id} />}
 
         {/* Key metrics */}
         <div className="grid gap-4 md:grid-cols-3">
@@ -120,20 +296,24 @@ export default function WorkerDashboardPage() {
             <div className="space-y-2">
               <div className="text-xs font-semibold uppercase tracking-wide text-teal-700">Trust score</div>
               <div className="text-4xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
-                {worker.trust.total}
+                {stats.trustScore}
               </div>
             </div>
           </Card>
           <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 shadow-lg border-2 border-blue-200">
             <div className="space-y-2">
               <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">Referrals received</div>
-              <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">5</div>
+              <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                {stats.referralsReceived}
+              </div>
             </div>
           </Card>
           <Card className="bg-gradient-to-br from-violet-50 to-purple-50 p-6 shadow-lg border-2 border-violet-200">
             <div className="space-y-2">
               <div className="text-xs font-semibold uppercase tracking-wide text-violet-700">Verified jobs</div>
-              <div className="text-4xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">3</div>
+              <div className="text-4xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+                {stats.verifiedJobs}
+              </div>
             </div>
           </Card>
         </div>
@@ -183,6 +363,83 @@ export default function WorkerDashboardPage() {
             </Link>
           </Card>
         </div>
+
+        {/* Connect with more people */}
+        <Card className="bg-white/90 p-6 shadow-lg border-2 border-slate-200">
+          <div className="space-y-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-lg font-semibold text-slate-900">Connect with more people</h2>
+              <p className="text-sm text-slate-600">
+                Search by name to grow your network. We’ll show every account that matches—just like LinkedIn.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <input
+                type="text"
+                value={connectionQuery}
+                onChange={(event) => setConnectionQuery(event.target.value)}
+                placeholder="Search for clients or workers by name"
+                className="w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-all"
+              />
+              {connectionSendError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                  {connectionSendError}
+                </div>
+              )}
+              {connectionSuccess && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+                  {connectionSuccess}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <span>Suggested matches</span>
+                {connectionLoading && <span className="text-[10px] font-medium text-teal-600">Searching...</span>}
+              </div>
+              {connectionQuery.trim().length === 0 ? (
+                <Card className="border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+                  Start typing a name to search across TrustNet.
+                </Card>
+              ) : connectionError ? (
+                <Card className="border border-red-200 bg-red-50 p-4 text-center text-sm font-medium text-red-700">
+                  {connectionError}
+                </Card>
+              ) : connectionLoading ? (
+                <Card className="border border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+                  Searching the network...
+                </Card>
+              ) : connectionResults.length === 0 ? (
+                <Card className="border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+                  No accounts found with that name yet. Try another person.
+                </Card>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {connectionResults.map((result) => {
+                    const isSelf = result.userId === user.id;
+                    const isSending = sendingRequestId === result.userId;
+                    const actionLabel = isSelf
+                      ? "That's you"
+                      : isSending
+                        ? "Sending..."
+                        : "Send connection request";
+
+                    return (
+                      <WorkerCard
+                        key={`${result.userId}-${result.summary.id}`}
+                        worker={result.summary}
+                        actionLabel={actionLabel}
+                        actionDisabled={isSelf || isSending}
+                        onAction={() => handleSendConnectionRequest(result)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );
