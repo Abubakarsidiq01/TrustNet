@@ -9,6 +9,11 @@ const workerSeeds = [
     trade: "Electrician",
     city: "Lagos",
     area: "Ikeja",
+    state: "Lagos State",
+    country: "Nigeria",
+    fullAddress: "Ikeja, Lagos, Lagos State, Nigeria",
+    latitude: 6.6018,
+    longitude: 3.3515,
     skills: ["punctual", "neat", "fair pricing"],
     trust: { total: 82, sentiment: 36, referrals: 44, verified: 20 },
     pathToYou: "You → Aisha → John",
@@ -20,6 +25,11 @@ const workerSeeds = [
     trade: "Electrician",
     city: "Lagos",
     area: "Yaba",
+    state: "Lagos State",
+    country: "Nigeria",
+    fullAddress: "Yaba, Lagos, Lagos State, Nigeria",
+    latitude: 6.517,
+    longitude: 3.3789,
     skills: ["explains clearly", "tidy install"],
     trust: { total: 75, sentiment: 38, referrals: 27, verified: 10 },
     pathToYou: "You → Chidi → Sade",
@@ -31,6 +41,11 @@ const workerSeeds = [
     trade: "Electrician",
     city: "Lagos",
     area: "Surulere",
+    state: "Lagos State",
+    country: "Nigeria",
+    fullAddress: "Surulere, Lagos, Lagos State, Nigeria",
+    latitude: 6.4926,
+    longitude: 3.364,
     skills: ["fast response", "good follow-up"],
     trust: { total: 68, sentiment: 30, referrals: 25, verified: 13 },
     pathToYou: "You → Hassan → Tunde",
@@ -42,6 +57,11 @@ const workerSeeds = [
     trade: "Cleaner",
     city: "Lagos",
     area: "Yaba",
+    state: "Lagos State",
+    country: "Nigeria",
+    fullAddress: "Yaba, Lagos, Lagos State, Nigeria",
+    latitude: 6.517,
+    longitude: 3.3789,
     skills: ["thorough", "reliable"],
     trust: { total: 76, sentiment: 40, referrals: 26, verified: 10 },
     pathToYou: "You → Farouk → Aisha",
@@ -53,6 +73,11 @@ const workerSeeds = [
     trade: "Plumber",
     city: "Lagos",
     area: "Lekki",
+    state: "Lagos State",
+    country: "Nigeria",
+    fullAddress: "Lekki, Lagos, Lagos State, Nigeria",
+    latitude: 6.452,
+    longitude: 3.602,
     skills: ["honest", "no leaks after"],
     trust: { total: 79, sentiment: 35, referrals: 30, verified: 14 },
     pathToYou: "You → Amaka → Michael",
@@ -72,36 +97,66 @@ const clientSeeds = [
     email: "demo.client@example.com",
     city: "Lagos",
     area: "Ikeja",
+    state: "Lagos State",
+    country: "Nigeria",
+    fullAddress: "Ikeja, Lagos, Lagos State, Nigeria",
+    latitude: 6.6018,
+    longitude: 3.3515,
   },
   {
     name: "Aisha",
     email: "aisha.client@example.com",
     city: "Lagos",
     area: "Yaba",
+    state: "Lagos State",
+    country: "Nigeria",
+    fullAddress: "Yaba, Lagos, Lagos State, Nigeria",
+    latitude: 6.517,
+    longitude: 3.3789,
   },
   {
     name: "Farouk",
     email: "farouk.client@example.com",
     city: "Lagos",
     area: "Magodo",
+    state: "Lagos State",
+    country: "Nigeria",
+    fullAddress: "Magodo, Lagos, Lagos State, Nigeria",
+    latitude: 6.635,
+    longitude: 3.3743,
   },
   {
     name: "Chidi",
     email: "chidi.client@example.com",
     city: "Lagos",
     area: "Lekki",
+    state: "Lagos State",
+    country: "Nigeria",
+    fullAddress: "Lekki, Lagos, Lagos State, Nigeria",
+    latitude: 6.452,
+    longitude: 3.602,
   },
   {
     name: "Hassan",
     email: "hassan.client@example.com",
     city: "Lagos",
     area: "Surulere",
+    state: "Lagos State",
+    country: "Nigeria",
+    fullAddress: "Surulere, Lagos, Lagos State, Nigeria",
+    latitude: 6.4926,
+    longitude: 3.364,
   },
   {
     name: "Amaka",
     email: "amaka.client@example.com",
     city: "Lagos",
     area: "Victoria Island",
+    state: "Lagos State",
+    country: "Nigeria",
+    fullAddress: "Victoria Island, Lagos, Lagos State, Nigeria",
+    latitude: 6.4281,
+    longitude: 3.4219,
   },
 ];
 
@@ -308,18 +363,27 @@ export async function POST() {
 
       userMap.set(client.email, user.id);
 
+      const locationFields: Record<string, unknown> = {};
+      if (client.state) locationFields.state = client.state;
+      if (client.country) locationFields.country = client.country;
+      if (client.fullAddress) locationFields.fullAddress = client.fullAddress;
+      if (typeof client.latitude === "number") locationFields.latitude = client.latitude;
+      if (typeof client.longitude === "number") locationFields.longitude = client.longitude;
+
       const profile = await prisma.clientProfile.upsert({
         where: { userId: user.id },
         update: {
           name: client.name,
           city: client.city,
           area: client.area,
+          ...locationFields,
         },
         create: {
           userId: user.id,
           name: client.name,
           city: client.city,
           area: client.area,
+          ...locationFields,
         },
       });
 
@@ -341,6 +405,13 @@ export async function POST() {
 
       userMap.set(worker.email, user.id);
 
+      const workerLocationFields: Record<string, unknown> = {};
+      if (worker.state) workerLocationFields.state = worker.state;
+      if (worker.country) workerLocationFields.country = worker.country;
+      if (worker.fullAddress) workerLocationFields.fullAddress = worker.fullAddress;
+      if (typeof worker.latitude === "number") workerLocationFields.latitude = worker.latitude;
+      if (typeof worker.longitude === "number") workerLocationFields.longitude = worker.longitude;
+
       const profile = await prisma.workerProfile.upsert({
         where: { userId: user.id },
         update: {
@@ -351,6 +422,7 @@ export async function POST() {
           skills: worker.skills,
           pathToYou: worker.pathToYou,
           networkSteps: worker.networkSteps,
+          ...workerLocationFields,
         },
         create: {
           userId: user.id,
@@ -361,6 +433,7 @@ export async function POST() {
           skills: worker.skills,
           pathToYou: worker.pathToYou,
           networkSteps: worker.networkSteps,
+          ...workerLocationFields,
         },
       });
 

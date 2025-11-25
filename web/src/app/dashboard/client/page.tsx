@@ -379,12 +379,12 @@ export default function ClientDashboardPage() {
         <header className="flex flex-col gap-2">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">
                 Welcome back, {firstName}
-              </h1>
-              <p className="text-sm text-slate-600">
-                See who your network trusts before you hire.
-              </p>
+          </h1>
+          <p className="text-sm text-slate-600">
+            See who your network trusts before you hire.
+          </p>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -584,7 +584,7 @@ export default function ClientDashboardPage() {
                 No workers to show yet. Try inviting your network.
               </Card>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2">
                 {recommendedWorkers.map((w) => (
                   <WorkerCard
                     key={w.id}
@@ -593,8 +593,8 @@ export default function ClientDashboardPage() {
                     actionDisabled={hiringWorkerId === w.id}
                     onAction={() => handleHireWorker(w)}
                   />
-                ))}
-              </div>
+              ))}
+            </div>
             )}
           </section>
 

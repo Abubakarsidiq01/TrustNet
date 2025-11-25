@@ -27,6 +27,10 @@ export function WorkerCard({
     return "bg-gradient-to-br from-violet-500 to-purple-600";
   };
 
+  const locationParts = [worker.city, worker.state ?? "", worker.country ?? ""].filter(
+    (part) => part && part.length > 0,
+  );
+
   return (
     <div className="group flex flex-col justify-between rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 text-sm shadow-md transition-all hover:border-teal-400 hover:shadow-xl">
       <div className="flex items-start gap-4">
@@ -44,7 +48,9 @@ export function WorkerCard({
               {worker.trade}
             </span>
             <span className="text-slate-500">·</span>
-            <span className="text-slate-600">{worker.locationLabel}</span>
+            <span className="text-slate-600">
+              {locationParts.length > 0 ? locationParts.join(", ") : worker.locationLabel}
+            </span>
           </div>
         </div>
         <div className="text-right">

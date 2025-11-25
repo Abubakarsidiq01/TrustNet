@@ -19,6 +19,8 @@ function buildWorkerSummary(user: {
     trade: string;
     city: string;
     area: string;
+    state: string | null;
+    country: string | null;
     skills: unknown;
     trustScores: { total: number; sentiment: number; referrals: number; verified: number }[];
   } | null;
@@ -28,13 +30,21 @@ function buildWorkerSummary(user: {
   }
 
   const trustSnapshot = user.workerProfile.trustScores?.[0];
+  const locationParts = [
+    user.workerProfile.city,
+    user.workerProfile.state ?? "",
+    user.workerProfile.country ?? "",
+  ].filter((part) => part && part.length > 0);
   return {
     id: user.workerProfile.id,
     name: user.workerProfile.name,
     trade: user.workerProfile.trade,
     city: user.workerProfile.city,
     area: user.workerProfile.area,
-    locationLabel: `${user.workerProfile.area}, ${user.workerProfile.city}`,
+    state: user.workerProfile.state ?? null,
+    country: user.workerProfile.country ?? null,
+    locationLabel:
+      locationParts.length > 0 ? locationParts.join(", ") : user.workerProfile.area ?? user.workerProfile.city,
     trust: {
       total: trustSnapshot?.total ?? 0,
       sentiment: trustSnapshot?.sentiment ?? 0,
@@ -138,6 +148,8 @@ export async function GET(request: Request) {
             name: otherUser.name,
             city: otherUser.clientProfile.city,
             area: otherUser.clientProfile.area,
+            state: otherUser.clientProfile.state,
+            country: otherUser.clientProfile.country,
             stats,
           },
         });

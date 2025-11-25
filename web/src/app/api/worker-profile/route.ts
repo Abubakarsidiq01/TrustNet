@@ -52,13 +52,18 @@ export async function POST(request: Request) {
     const trade = (body.trade as string | undefined)?.trim();
     const city = (body.city as string | undefined)?.trim();
     const area = (body.area as string | undefined)?.trim();
+    const state = (body.state as string | undefined)?.trim() ?? null;
+    const country = (body.country as string | undefined)?.trim() ?? null;
+    const fullAddress = (body.fullAddress as string | undefined)?.trim();
+    const latitude = typeof body.latitude === "number" ? body.latitude : null;
+    const longitude = typeof body.longitude === "number" ? body.longitude : null;
     const bio = (body.bio as string | undefined)?.trim() || null;
     const skills = body.skills as string[] | undefined;
     const radiusKm = body.radiusKm as number | undefined;
 
-    if (!userId || !name || !trade || !city || !area) {
+    if (!userId || !name || !trade || !city || !area || !fullAddress || latitude === null || longitude === null) {
       return NextResponse.json(
-        { message: "User ID, name, trade, city, and area are required." },
+        { message: "Complete location details (city, area, address, coordinates) are required." },
         { status: 400 },
       );
     }
@@ -89,6 +94,11 @@ export async function POST(request: Request) {
       trade,
       city,
       area,
+      state,
+      country,
+      fullAddress,
+      latitude,
+      longitude,
       bio,
       skills: skills && skills.length > 0 ? skills : null,
       radiusKm: radiusKm || null,

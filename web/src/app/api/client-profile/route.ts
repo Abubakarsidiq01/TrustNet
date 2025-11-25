@@ -94,10 +94,15 @@ export async function POST(request: Request) {
     const name = (body.name as string | undefined)?.trim();
     const city = (body.city as string | undefined)?.trim();
     const area = (body.area as string | undefined)?.trim();
+    const state = (body.state as string | undefined)?.trim() ?? null;
+    const country = (body.country as string | undefined)?.trim() ?? null;
+    const fullAddress = (body.fullAddress as string | undefined)?.trim();
+    const latitude = typeof body.latitude === "number" ? body.latitude : null;
+    const longitude = typeof body.longitude === "number" ? body.longitude : null;
 
-    if (!userId || !name || !city || !area) {
+    if (!userId || !name || !city || !area || !fullAddress || latitude === null || longitude === null) {
       return NextResponse.json(
-        { message: "User ID, name, city, and area are required." },
+        { message: "User ID, name, and a valid location are required." },
         { status: 400 },
       );
     }
@@ -127,6 +132,11 @@ export async function POST(request: Request) {
       name,
       city,
       area,
+      state,
+      country,
+      fullAddress,
+      latitude,
+      longitude,
     };
 
     const profile = await prisma.$transaction(async (tx) => {

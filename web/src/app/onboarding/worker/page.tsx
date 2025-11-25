@@ -6,17 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useUserStore } from "@/store/user-store";
 import type { AuthUser } from "@/lib/types";
+import { LocationSearchInput, type LocationOption } from "@/components/location-search-input";
 
 export default function WorkerOnboardingPage() {
   const router = useRouter();
   const { user, setUser } = useUserStore();
   const [hydrated, setHydrated] = useState(false);
+  const [prefillLoading, setPrefillLoading] = useState(true);
 
   // Form state
   const [name, setName] = useState("");
   const [trade, setTrade] = useState("");
-  const [city, setCity] = useState("");
-  const [area, setArea] = useState("");
+  const [locationOption, setLocationOption] = useState<LocationOption | null>(null);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [radiusKm, setRadiusKm] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,6 +50,72 @@ export default function WorkerOnboardingPage() {
     }
   }, [hydrated, user, router]);
 
+  // Prefill with existing profile data when available
+  useEffect(() => {
+    if (!hydrated || !user?.id || user.role !== "WORKER") {
+      return;
+    }
+
+    let active = true;
+
+    async function loadProfile() {
+      try {
+        const response = await fetch(`/api/worker-profile?userId=${user.id}`);
+        if (!response.ok) {
+          if (active) {
+            setPrefillLoading(false);
+          }
+          return;
+        }
+        const payload = (await response.json()) as { profile: any };
+        if (!active || !payload.profile) return;
+
+        const profile = payload.profile;
+        setName(profile.name ?? "");
+        setTrade(profile.trade ?? "");
+
+        if (Array.isArray(profile.skills)) {
+          setSelectedSkills(profile.skills);
+        }
+
+        if (typeof profile.radiusKm === "number") {
+          setRadiusKm(profile.radiusKm);
+        } else {
+          setRadiusKm(null);
+        }
+
+        if (
+          profile.fullAddress &&
+          typeof profile.latitude === "number" &&
+          typeof profile.longitude === "number"
+        ) {
+          setLocationOption({
+            id: profile.id,
+            label: profile.fullAddress,
+            city: profile.city ?? "",
+            area: profile.area ?? "",
+            state: profile.state ?? "",
+            country: profile.country ?? "",
+            latitude: profile.latitude,
+            longitude: profile.longitude,
+          });
+        }
+      } catch {
+        // Silent fail - user can still fill manually
+      } finally {
+        if (active) {
+          setPrefillLoading(false);
+        }
+      }
+    }
+
+    loadProfile();
+
+    return () => {
+      active = false;
+    };
+  }, [hydrated, user]);
+
   const toggleSkill = (skill: string) => {
     setSelectedSkills((prev) =>
       prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill],
@@ -70,8 +137,8 @@ export default function WorkerOnboardingPage() {
       return;
     }
 
-    if (!name.trim() || !trade.trim() || !city.trim() || !area.trim()) {
-      setError("Please fill in all required fields (name, trade, city, area).");
+    if (!name.trim() || !trade.trim() || !locationOption) {
+      setError("Please fill in all required fields (name, trade, and location).");
       return;
     }
 
@@ -86,8 +153,13 @@ export default function WorkerOnboardingPage() {
           userId: user.id,
           name: name.trim(),
           trade: trade.trim(),
-          city: city.trim(),
-          area: area.trim(),
+          city: locationOption.city,
+          area: locationOption.area,
+          state: locationOption.state,
+          country: locationOption.country,
+          fullAddress: locationOption.label,
+          latitude: locationOption.latitude,
+          longitude: locationOption.longitude,
           skills: selectedSkills.length > 0 ? selectedSkills : undefined,
           radiusKm,
         }),
@@ -123,11 +195,11 @@ export default function WorkerOnboardingPage() {
     }
   }
 
-  if (!hydrated || !user || user.role !== "WORKER") {
+  if (!hydrated || !user || user.role !== "WORKER" || prefillLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50">
         <Card className="w-full max-w-sm text-center text-sm text-neutral-600">
-          Loading...
+          Loading your profile...
         </Card>
       </div>
     );
@@ -185,42 +257,26 @@ export default function WorkerOnboardingPage() {
                   placeholder="Electrician"
                 />
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-1">
-                  <label
-                    htmlFor="city"
-                    className="block text-xs font-medium text-neutral-800"
-                  >
-                    City
-                  </label>
-                  <input
-                    id="city"
-                    type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900"
-                    placeholder="Lagos"
-                  />
+              <LocationSearchInput
+                label="Service location"
+                selected={locationOption}
+                onSelect={setLocationOption}
+                required
+              />
+              {locationOption && (
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-700">
+                  <div>
+                    <span className="font-medium text-neutral-900">City:</span> {locationOption.city}
+                  </div>
+                  <div>
+                    <span className="font-medium text-neutral-900">Area:</span> {locationOption.area}
+                  </div>
+                  <div className="truncate">
+                    <span className="font-medium text-neutral-900">Address:</span>{" "}
+                    {locationOption.label}
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label
-                    htmlFor="area"
-                    className="block text-xs font-medium text-neutral-800"
-                  >
-                    Area
-                  </label>
-                  <input
-                    id="area"
-                    type="text"
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900"
-                    placeholder="Ikeja"
-                  />
-                </div>
-              </div>
+              )}
             </div>
           </section>
 

@@ -6,16 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useUserStore } from "@/store/user-store";
 import type { AuthUser } from "@/lib/types";
+import { LocationSearchInput, type LocationOption } from "@/components/location-search-input";
 
 export default function ClientOnboardingPage() {
   const router = useRouter();
   const { user, setUser } = useUserStore();
   const [hydrated, setHydrated] = useState(false);
+  const [prefillLoading, setPrefillLoading] = useState(true);
 
   // Form state
   const [name, setName] = useState("");
-  const [city, setCity] = useState("");
-  const [area, setArea] = useState("");
+  const [locationOption, setLocationOption] = useState<LocationOption | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +44,62 @@ export default function ClientOnboardingPage() {
     }
   }, [hydrated, user, router]);
 
+  // Prefill existing client profile data
+  useEffect(() => {
+    if (!hydrated || !user?.id || user.role !== "CLIENT") {
+      return;
+    }
+
+    let active = true;
+
+    async function loadProfile() {
+      try {
+        const response = await fetch(`/api/client-profile?userId=${user.id}`);
+        if (!response.ok) {
+          if (active) {
+            setPrefillLoading(false);
+          }
+          return;
+        }
+
+        const payload = (await response.json()) as { profile: any };
+        if (!active || !payload.profile) return;
+
+        const profile = payload.profile;
+        setName(profile.name ?? "");
+
+        if (
+          profile.fullAddress &&
+          typeof profile.latitude === "number" &&
+          typeof profile.longitude === "number"
+        ) {
+          setLocationOption({
+            id: profile.id,
+            label: profile.fullAddress,
+            city: profile.city ?? "",
+            area: profile.area ?? "",
+            state: profile.state ?? "",
+            country: profile.country ?? "",
+            latitude: profile.latitude,
+            longitude: profile.longitude,
+          });
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (active) {
+          setPrefillLoading(false);
+        }
+      }
+    }
+
+    loadProfile();
+
+    return () => {
+      active = false;
+    };
+  }, [hydrated, user]);
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -52,8 +109,8 @@ export default function ClientOnboardingPage() {
       return;
     }
 
-    if (!name.trim() || !city.trim() || !area.trim()) {
-      setError("Please fill in all required fields (name, city, area).");
+    if (!name.trim() || !locationOption) {
+      setError("Please fill in all required fields (name and location).");
       return;
     }
 
@@ -67,8 +124,13 @@ export default function ClientOnboardingPage() {
         body: JSON.stringify({
           userId: user.id,
           name: name.trim(),
-          city: city.trim(),
-          area: area.trim(),
+          city: locationOption.city,
+          area: locationOption.area,
+          state: locationOption.state,
+          country: locationOption.country,
+          fullAddress: locationOption.label,
+          latitude: locationOption.latitude,
+          longitude: locationOption.longitude,
         }),
       });
 
@@ -102,11 +164,11 @@ export default function ClientOnboardingPage() {
     }
   }
 
-  if (!hydrated || !user || user.role !== "CLIENT") {
+  if (!hydrated || !user || user.role !== "CLIENT" || prefillLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50">
         <Card className="w-full max-w-sm text-center text-sm text-neutral-600">
-          Loading...
+          Loading your profile...
         </Card>
       </div>
     );
@@ -147,42 +209,26 @@ export default function ClientOnboardingPage() {
                   required
                 />
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-1">
-                  <label
-                    htmlFor="city"
-                    className="block text-xs font-medium text-neutral-800"
-                  >
-                    City
-                  </label>
-                  <input
-                    id="city"
-                    type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900"
-                    placeholder="Lagos"
-                    required
-                  />
+              <LocationSearchInput
+                label="Primary location"
+                selected={locationOption}
+                onSelect={setLocationOption}
+                required
+              />
+              {locationOption && (
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-700">
+                  <div>
+                    <span className="font-medium text-neutral-900">City:</span> {locationOption.city}
+                  </div>
+                  <div>
+                    <span className="font-medium text-neutral-900">Area:</span> {locationOption.area}
+                  </div>
+                  <div className="truncate">
+                    <span className="font-medium text-neutral-900">Address:</span>{" "}
+                    {locationOption.label}
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label
-                    htmlFor="area"
-                    className="block text-xs font-medium text-neutral-800"
-                  >
-                    Area
-                  </label>
-                  <input
-                    id="area"
-                    type="text"
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                    className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900"
-                    placeholder="Yaba"
-                    required
-                  />
-                </div>
-              </div>
+              )}
             </div>
           </section>
 
@@ -233,7 +279,7 @@ export default function ClientOnboardingPage() {
           )}
 
           <div className="flex justify-end pt-2">
-            <Button type="submit" disabled={loading || !name.trim() || !city.trim() || !area.trim()}>
+            <Button type="submit" disabled={loading || !name.trim() || !locationOption}>
               {loading ? "Saving..." : "Continue to dashboard"}
             </Button>
           </div>

@@ -7,7 +7,9 @@ import type { ClientProfileStats } from "@/lib/types";
 interface ClientCardProps {
   name: string;
   city: string;
-  area: string;
+  area?: string | null;
+  state?: string | null;
+  country?: string | null;
   badgeLabel?: string;
   stats: ClientProfileStats;
   footer?: ReactNode;
@@ -26,6 +28,8 @@ export function ClientCard({
   name,
   city,
   area,
+  state,
+  country,
   badgeLabel = "Client",
   stats,
   footer,
@@ -36,36 +40,41 @@ export function ClientCard({
     .join("")
     .slice(0, 2)
     .toUpperCase();
+  const locationParts = [city, state, country].filter(
+    (part): part is string => typeof part === "string" && part.length > 0,
+  );
 
   return (
-    <Card className="group flex flex-col justify-between rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50 p-8 text-sm shadow-md transition-all hover:border-teal-400 hover:shadow-xl">
-      <div className="flex items-start gap-6">
-        <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 text-lg font-bold text-white shadow-lg">
+    <Card className="group flex flex-col justify-between rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 text-sm shadow-md transition-all hover:border-teal-400 hover:shadow-xl">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 text-xs font-bold text-white shadow-lg">
           {initials}
         </div>
-        <div className="flex-1 space-y-2">
-          <div className="text-2xl font-semibold text-slate-900">{name}</div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="rounded-full bg-teal-100 px-3 py-1 font-medium text-teal-700">
+        <div className="flex-1 space-y-1.5">
+          <div className="font-semibold text-slate-900">{name}</div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="rounded-full bg-teal-100 px-2.5 py-0.5 font-medium text-teal-700">
               {badgeLabel}
             </span>
             <span className="text-slate-500">·</span>
             <span className="text-slate-600">
-              {area}, {city}
+              {locationParts.length > 0
+                ? locationParts.join(", ")
+                : [area, city].filter((part) => part && part.length > 0).join(", ")}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="mt-6 space-y-4 text-sm">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+      <div className="mt-4 space-y-3 text-[11px]">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           {statMeta.map((item) => (
-            <div key={item.key} className="space-y-1">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div key={item.key} className="space-y-0.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                 {item.label}
               </div>
               <div
-                className={`text-3xl font-bold bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent`}
+                className={`text-2xl font-bold bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent`}
               >
                 {stats[item.key]}
               </div>
@@ -74,7 +83,7 @@ export function ClientCard({
         </div>
       </div>
 
-      {footer && <div className="mt-8 border-t border-slate-200 pt-6">{footer}</div>}
+      {footer && <div className="mt-6 border-t border-slate-200 pt-4">{footer}</div>}
     </Card>
   );
 }

@@ -24,6 +24,9 @@ function toStringArray(value: unknown): string[] {
 function mapWorkerProfileToSummary(profile: WorkerProfileWithTrust): WorkerSummary {
   const latestTrust = profile.trustScores[0];
   const tags = toStringArray(profile.skills ?? undefined);
+  const locationParts = [profile.city, profile.state ?? null, profile.country ?? null].filter(
+    (part): part is string => typeof part === "string" && part.length > 0,
+  );
 
   return {
     id: profile.id,
@@ -31,7 +34,9 @@ function mapWorkerProfileToSummary(profile: WorkerProfileWithTrust): WorkerSumma
     trade: profile.trade,
     city: profile.city,
     area: profile.area,
-    locationLabel: `${profile.area}, ${profile.city}`,
+    state: profile.state ?? null,
+    country: profile.country ?? null,
+    locationLabel: locationParts.length > 0 ? locationParts.join(", ") : profile.area ?? profile.city,
     trust: {
       total: latestTrust?.total ?? 0,
       sentiment: latestTrust?.sentiment ?? 0,
@@ -86,4 +91,5 @@ export async function getWorkerSummaryById(id: string): Promise<WorkerSummary | 
 export function mapWorkerProfile(profile: WorkerProfileWithTrust): WorkerSummary {
   return mapWorkerProfileToSummary(profile);
 }
+
 

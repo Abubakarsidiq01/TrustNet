@@ -9,17 +9,26 @@ export interface TrustBreakdown {
   verified: number;
 }
 
+export interface MutualConnectionSummary {
+  userId: string;
+  name: string;
+}
+
 export interface WorkerSummary {
   id: string;
   name: string;
   trade: string;
   city: string;
   area: string;
+  state?: string | null;
+  country?: string | null;
   locationLabel: string;
   trust: TrustBreakdown;
   sentimentTags: SentimentTag[];
   pathToYou?: string;
   inYourNetworkSteps?: number;
+  mutualConnections?: MutualConnectionSummary[];
+  isDirectConnection?: boolean;
 }
 
 export interface NetworkStats {
@@ -73,6 +82,8 @@ export interface ConnectionNetworkEntry {
     name: string;
     city: string;
     area: string;
+    state?: string | null;
+    country?: string | null;
     stats: ClientProfileStats;
   };
 }

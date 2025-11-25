@@ -3,13 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { toAuthUser } from "@/lib/auth";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export async function GET(_: Request, { params }: RouteParams) {
+export async function GET(_: Request, context: RouteParams) {
   try {
+    const params = context?.params ? await context.params : null;
+
     if (!params?.id) {
       return NextResponse.json({ message: "User id is required." }, { status: 400 });
     }

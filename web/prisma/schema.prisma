@@ -33,6 +33,11 @@ model WorkerProfile {
   trade     String
   city      String
   area      String
+  state     String?
+  country   String?
+  fullAddress String?
+  latitude  Float?
+  longitude Float?
   bio       String? 
   skills    Json?
   radiusKm  Int?
@@ -53,6 +58,11 @@ model ClientProfile {
   name      String
   city      String
   area      String
+  state     String?
+  country   String?
+  fullAddress String?
+  latitude  Float?
+  longitude Float?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

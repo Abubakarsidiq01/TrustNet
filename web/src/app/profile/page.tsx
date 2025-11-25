@@ -15,6 +15,9 @@ interface WorkerProfile {
   trade: string;
   city: string;
   area: string;
+  fullAddress?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   bio: string | null;
   skills: string[] | null;
   radiusKm: number | null;
@@ -26,6 +29,9 @@ interface ClientProfile {
   name: string;
   city: string;
   area: string;
+  fullAddress?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   userId: string;
 }
 
@@ -212,7 +218,11 @@ export default function ProfilePage() {
       : workerProfile.skills
         ? [workerProfile.skills]
         : [];
-    const locationLabel = `${workerProfile.area}, ${workerProfile.city}`;
+    const locationLabelParts = [workerProfile.city, workerProfile.state ?? null, workerProfile.country ?? null].filter(
+      (part): part is string => typeof part === "string" && part.length > 0,
+    );
+    const locationLabel =
+      locationLabelParts.length > 0 ? locationLabelParts.join(", ") : workerProfile.area ?? workerProfile.city;
 
     const workerSummary: WorkerSummary = {
       id: workerProfile.id,
@@ -241,7 +251,7 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-teal-50/30 px-4 py-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-6">
           {/* Large Profile Card */}
-          <div className="group flex flex-col justify-between rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50 p-8 text-sm shadow-md transition-all hover:border-teal-400 hover:shadow-xl min-h-[80vh]">
+          <div className="group mx-auto flex w-full max-w-4xl flex-col justify-between rounded-2xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 text-sm shadow-md transition-all hover:border-teal-400 hover:shadow-xl">
             <div className="flex items-start gap-6">
               <div className={`flex h-20 w-20 items-center justify-center rounded-xl ${getTradeColor(workerSummary.trade)} text-lg font-bold text-white shadow-lg`}>
                 {workerSummary.name
@@ -343,6 +353,8 @@ export default function ProfilePage() {
             name={clientProfile.name}
             city={clientProfile.city}
             area={clientProfile.area}
+            state={clientProfile.state ?? undefined}
+            country={clientProfile.country ?? undefined}
             stats={clientStats}
             footer={
               <div className="flex items-center justify-between gap-4">
@@ -426,6 +438,8 @@ export default function ProfilePage() {
                           name={entry.client!.name}
                           city={entry.client!.city}
                           area={entry.client!.area}
+                          state={entry.client!.state ?? undefined}
+                          country={entry.client!.country ?? undefined}
                           stats={entry.client!.stats}
                         />
                       </div>
