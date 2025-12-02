@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ReviewModal } from "@/components/review-modal";
 import { CategoryStatsChart } from "@/components/category-stats-chart";
+import { useUserStore } from "@/store/user-store";
 import type { WorkerSummary } from "@/lib/types";
 
 interface WorkerProfilePageProps {
@@ -53,6 +54,7 @@ interface AvailableJob {
 }
 
 export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
+  const { user } = useUserStore();
   const [worker, setWorker] = useState<WorkerDetail | null>(null);
   const [peers, setPeers] = useState<WorkerSummary[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -237,49 +239,34 @@ export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
           <div className="space-y-4">
             <div className="text-base font-bold text-slate-900">Recent verified jobs</div>
             <div className="space-y-3">
-              {[
-                {
-                  date: "Jun 2024",
-                  title: "Full flat rewiring",
-                  location: "Ikeja",
-                  initials: "AO",
-                },
-                {
-                  date: "May 2024",
-                  title: "Office lighting install",
-                  location: "Yaba",
-                  initials: "FB",
-                },
-                {
-                  date: "Apr 2024",
-                  title: "Fault tracing and repair",
-                  location: "Surulere",
-                  initials: "KT",
-                },
-              ].map((job) => (
-                <div
-                  key={job.title}
-                  className="flex items-center justify-between gap-4 rounded-xl border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-50 to-teal-50 p-4 shadow-sm"
-                >
-                  <div className="space-y-1">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                      {job.date}
-                    </div>
-                    <div className="text-sm font-bold text-slate-900">{job.title}</div>
-                    <div className="text-xs text-slate-600">
-                      {job.location} · Client {job.initials}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="rounded-full bg-emerald-500 px-3 py-1 text-[10px] font-bold text-white">
-                      Verified
-                    </span>
-                    <button className="text-xs font-medium text-teal-600 underline-offset-2 hover:text-teal-700 hover:underline">
-                      See proof
-                    </button>
-                  </div>
+              {availableJobs.length === 0 ? (
+                <div className="text-center py-8 text-sm text-slate-500">
+                  No verified jobs yet.
                 </div>
-              ))}
+              ) : (
+                availableJobs.map((job) => {
+                  const date = new Date(job.createdAt);
+                  const dateStr = date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+                  return (
+                    <div
+                      key={job.id}
+                      className="flex items-center justify-between gap-4 rounded-xl border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-50 to-teal-50 p-4 shadow-sm"
+                    >
+                      <div className="space-y-1">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                          {dateStr}
+                        </div>
+                        <div className="text-sm font-bold text-slate-900">{job.title}</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="rounded-full bg-emerald-500 px-3 py-1 text-[10px] font-bold text-white">
+                          Verified
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </Card>
@@ -443,6 +430,41 @@ export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
           <Button
             size="lg"
             className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700"
+            onClick={async () => {
+              if (!user?.id) {
+                alert("Please sign in to request work from this worker.");
+                return;
+              }
+              
+              if (!worker?.id) {
+                alert("Worker information not available.");
+                return;
+              }
+              
+              try {
+                const response = await fetch("/api/jobs", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    clientUserId: user.id,
+                    workerId: worker.id,
+                    title: `Work request - ${new Date().toLocaleDateString()}`,
+                    description: "Work request from client",
+                  }),
+                });
+                
+                const data = await response.json();
+                if (!response.ok) {
+                  throw new Error(data.message || "Failed to create job offer");
+                }
+                
+                alert("Job offer created successfully! The worker will be notified.");
+                // Refresh the page to show the new job
+                window.location.reload();
+              } catch (error) {
+                alert(error instanceof Error ? error.message : "Failed to create job offer");
+              }
+            }}
           >
             Request work
           </Button>
@@ -456,18 +478,23 @@ export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
           setSelectedJobId(null);
         }}
         jobId={selectedJobId || undefined}
-        workerId={worker.id}
-        onSuccess={() => {
+        workerId={worker?.id || ""}
+        onSuccess={async () => {
           // Refetch worker data to show new review
-          fetch(`/api/workers/${params.id}`)
-            .then((res) => res.json())
-            .then((data) => {
+          try {
+            const response = await fetch(`/api/workers/${params.id}`);
+            const data = await response.json();
+            if (response.ok) {
               setReviews(data.reviews ?? []);
               setAggregatedRatings(data.aggregatedRatings ?? null);
+              setAvailableJobs(data.availableJobs ?? []);
               if (data.worker) {
                 setWorker({ ...worker, ...data.worker });
               }
-            });
+            }
+          } catch (err) {
+            console.error("Failed to refresh worker data:", err);
+          }
         }}
       />
     </div>

@@ -40,8 +40,10 @@ export function ReviewModal({ open, onClose, jobId, workerId, onSuccess }: Revie
       return;
     }
 
+    // If no jobId, we need to create a job first (for direct reviews without a job)
+    // For now, we require a jobId. In the future, we could create a job automatically.
     if (!jobId) {
-      setError("No job selected. Please select a completed job to review.");
+      setError("Please select a completed job to review, or create a job offer first.");
       return;
     }
 
