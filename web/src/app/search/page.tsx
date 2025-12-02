@@ -119,8 +119,14 @@ export default function SearchPage() {
   }, [sortFilter, workers]);
 
   const renderWorkerFooter = (worker: WorkerSummary) => {
-    const hireButton = (
-      <Link href={`/workers/${worker.id}`} className="flex-shrink-0">
+    const fromParam = encodeURIComponent("/search");
+    const isWorkerUser = user?.role === "WORKER";
+
+    const hireButton = isWorkerUser ? null : (
+      <Link
+        href={`/hire?workerId=${encodeURIComponent(worker.id)}&from=${fromParam}`}
+        className="flex-shrink-0"
+      >
         <Button
           size="sm"
           className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700"
@@ -153,7 +159,9 @@ export default function SearchPage() {
       );
     }
 
-    return <div className="flex w-full justify-end">{hireButton}</div>;
+    return hireButton ? (
+      <div className="flex w-full justify-end">{hireButton}</div>
+    ) : null;
   };
 
   return (

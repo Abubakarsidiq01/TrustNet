@@ -55,6 +55,27 @@ export interface ClientProfileStats {
   reviewsWritten: number;
 }
 
+export type JobStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export interface WorkerSideJobOffer {
+  jobId: string;
+  status: JobStatus;
+  client: {
+    name: string;
+    city: string;
+    area?: string | null;
+    state?: string | null;
+    country?: string | null;
+    stats: ClientProfileStats;
+  };
+}
+
+export interface ClientSideJobOffer {
+  jobId: string;
+  status: JobStatus;
+  worker: WorkerSummary;
+}
+
 export type ConnectionRequestStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 
 export interface ConnectionProfileSummary {

@@ -23,6 +23,7 @@ model User {
   connectionRequestsReceived ConnectionRequest[] @relation("ConnectionRequestsReceived")
   connectionsA               Connection[]        @relation("ConnectionsA")
   connectionsB               Connection[]        @relation("ConnectionsB")
+  messages                   Message[]
 }
 
 model WorkerProfile {
@@ -88,7 +89,18 @@ model Job {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  reviews Review[]
+  reviews  Review[]
+  messages Message[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  job       Job      @relation(fields: [jobId], references: [id])
+  jobId     String
+  sender    User     @relation(fields: [senderId], references: [id])
+  senderId  String
+  text      String
+  createdAt DateTime @default(now())
 }
 
 model Review {

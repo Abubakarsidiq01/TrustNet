@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { WorkerCard } from "@/components/worker-card";
 import { ConnectionRequestsPanel } from "@/components/connection-requests-panel";
+import { JobOffersPanel } from "@/components/job-offers-panel";
+import { WorkerCard } from "@/components/worker-card";
 import { useUserStore } from "@/store/user-store";
 import type { AuthUser, NetworkSearchResult } from "@/lib/types";
 
@@ -21,6 +22,7 @@ export default function WorkerDashboardPage() {
   const [hydrated, setHydrated] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [showConnectionsPanel, setShowConnectionsPanel] = useState(false);
+  const [showJobOffersPanel, setShowJobOffersPanel] = useState(false);
   const [connectionQuery, setConnectionQuery] = useState("");
   const [connectionResults, setConnectionResults] = useState<NetworkSearchResult[]>([]);
   const [connectionLoading, setConnectionLoading] = useState(false);
@@ -261,13 +263,28 @@ export default function WorkerDashboardPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowConnectionsPanel((prev) => !prev)}
-              >
-                {showConnectionsPanel ? "Hide connections" : "Connections"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={showConnectionsPanel ? "default" : "outline"}
+                  onClick={() => {
+                    setShowConnectionsPanel(true);
+                    setShowJobOffersPanel(false);
+                  }}
+                >
+                  Connection Requests
+                </Button>
+                <Button
+                  size="sm"
+                  variant={showJobOffersPanel ? "default" : "outline"}
+                  onClick={() => {
+                    setShowJobOffersPanel(true);
+                    setShowConnectionsPanel(false);
+                  }}
+                >
+                  Job Offers
+                </Button>
+              </div>
               <Link href="/profile">
                 <Button size="sm" className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700">
                   View Profile
@@ -289,6 +306,7 @@ export default function WorkerDashboardPage() {
         </header>
 
         {showConnectionsPanel && <ConnectionRequestsPanel userId={user.id} />}
+        {showJobOffersPanel && <JobOffersPanel userId={user.id} role="WORKER" />}
 
         {/* Key metrics */}
         <div className="grid gap-4 md:grid-cols-3">

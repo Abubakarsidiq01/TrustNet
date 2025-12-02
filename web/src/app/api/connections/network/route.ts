@@ -57,14 +57,14 @@ function buildWorkerSummary(user: {
 
 async function buildClientStats(clientProfileId: string): Promise<ClientProfileStats> {
   const jobs = await prisma.job.findMany({
-    where: { clientId: clientProfileId },
+    where: { clientId: clientProfileId, status: "COMPLETED" },
     select: { workerId: true },
   });
 
   const uniqueWorkerIds = new Set(jobs.map((job) => job.workerId));
 
   const [jobsPosted, employeeReviews, workersVouching] = await Promise.all([
-    prisma.job.count({ where: { clientId: clientProfileId } }),
+    prisma.job.count({ where: { clientId: clientProfileId, status: "COMPLETED" } }),
     prisma.review.count({ where: { reviewerId: clientProfileId } }),
     prisma.review.count({ where: { referrerId: clientProfileId } }),
   ]);

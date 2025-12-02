@@ -451,7 +451,9 @@ export default function ProfilePage() {
 
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-slate-800">Workers You’ve Hired</h4>
+                <h4 className="text-sm font-semibold text-slate-800">
+                  {user.role === "WORKER" ? "Workers connected with" : "Workers you’ve hired"}
+                </h4>
                 <span className="text-xs text-slate-500">{workerConnections.length}</span>
               </div>
               {workerConnections.length === 0 ? (
@@ -466,7 +468,14 @@ export default function ProfilePage() {
                       className="transform rounded-xl border border-slate-100 bg-white/90 p-2 shadow-sm transition hover:shadow-md"
                     >
                       <div className="scale-[0.9] transform">
-                        <WorkerCard worker={entry.worker!} />
+                        <WorkerCard
+                          worker={entry.worker!}
+                          footerContent={
+                            <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center text-xs font-semibold text-slate-600">
+                              Connected worker
+                            </div>
+                          }
+                        />
                       </div>
                     </div>
                   ))}

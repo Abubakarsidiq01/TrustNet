@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { WorkerCard } from "@/components/worker-card";
 import { ConnectionRequestsPanel } from "@/components/connection-requests-panel";
+import { JobOffersPanel } from "@/components/job-offers-panel";
+import { WorkerCard } from "@/components/worker-card";
 import { useUserStore } from "@/store/user-store";
 import type {
   AuthUser,
@@ -27,6 +28,7 @@ export default function ClientDashboardPage() {
   const [connectionSuccess, setConnectionSuccess] = useState<string | null>(null);
   const [sendingRequestId, setSendingRequestId] = useState<string | null>(null);
   const [showConnectionsPanel, setShowConnectionsPanel] = useState(false);
+  const [showJobOffersPanel, setShowJobOffersPanel] = useState(false);
   const [recommendedWorkers, setRecommendedWorkers] = useState<WorkerSummary[]>([]);
   const [workersLoading, setWorkersLoading] = useState(true);
   const [workersError, setWorkersError] = useState<string | null>(null);
@@ -37,9 +39,7 @@ export default function ClientDashboardPage() {
   });
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
-  const [hiringWorkerId, setHiringWorkerId] = useState<string | null>(null);
-  const [hireMessage, setHireMessage] = useState<string | null>(null);
-  const [hireError, setHireError] = useState<string | null>(null);
+  const [hiringWorkerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (hydrated) return;
@@ -295,82 +295,10 @@ export default function ClientDashboardPage() {
     }
   }
 
-  async function handleHireWorker(worker: WorkerSummary) {
-    if (!user?.id) {
-      setHireError("You need to sign in to hire a worker.");
-      return;
-    }
-
-    setHiringWorkerId(worker.id);
-    setHireError(null);
-    setHireMessage(null);
-
-    try {
-      const response = await fetch("/api/hire", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          clientUserId: user.id,
-          workerId: worker.id,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.message ?? "Unable to hire this worker right now.");
-      }
-
-      setHireMessage(`You hired ${worker.name}. Stats updated.`);
-
-      setWorkersLoading(true);
-      try {
-        const workersResponse = await fetch("/api/workers/summaries?limit=6");
-        const workersPayload = (await workersResponse.json()) as {
-          workers?: WorkerSummary[];
-          message?: string;
-        };
-        if (!workersResponse.ok) {
-          throw new Error(workersPayload?.message ?? "Unable to refresh workers.");
-        }
-        setRecommendedWorkers(workersPayload.workers ?? []);
-      } catch (err) {
-        setWorkersError(err instanceof Error ? err.message : "Unable to refresh workers.");
-      } finally {
-        setWorkersLoading(false);
-      }
-
-      if (hydrated && user?.id) {
-        setStatsLoading(true);
-        try {
-          const statsResponse = await fetch(`/api/network-stats?userId=${user.id}`);
-          const statsPayload = (await statsResponse.json()) as {
-            stats?: NetworkStats;
-            message?: string;
-          };
-          if (!statsResponse.ok) {
-            throw new Error(statsPayload?.message ?? "Unable to refresh stats.");
-          }
-          setNetworkStats(
-            statsPayload.stats ?? {
-              peopleConnected: 0,
-              workersVouching: 0,
-              reviewsWritten: 0,
-            },
-          );
-        } catch (err) {
-          setStatsError(err instanceof Error ? err.message : "Unable to refresh stats.");
-        } finally {
-          setStatsLoading(false);
-        }
-      }
-    } catch (err) {
-      setHireError(
-        err instanceof Error ? err.message : "Unable to hire this worker right now.",
-      );
-    } finally {
-      setHiringWorkerId(null);
-    }
+  function handleHireWorker(worker: WorkerSummary) {
+    const from = encodeURIComponent("/dashboard/client");
+    const workerParam = encodeURIComponent(worker.id);
+    router.push(`/hire?workerId=${workerParam}&from=${from}`);
   }
 
   return (
@@ -387,13 +315,28 @@ export default function ClientDashboardPage() {
           </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowConnectionsPanel((prev) => !prev)}
-              >
-                {showConnectionsPanel ? "Hide Requests" : "Connection Requests"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={showConnectionsPanel ? "default" : "outline"}
+                  onClick={() => {
+                    setShowConnectionsPanel(true);
+                    setShowJobOffersPanel(false);
+                  }}
+                >
+                  Connection Requests
+                </Button>
+                <Button
+                  size="sm"
+                  variant={showJobOffersPanel ? "default" : "outline"}
+                  onClick={() => {
+                    setShowJobOffersPanel(true);
+                    setShowConnectionsPanel(false);
+                  }}
+                >
+                  Job Offers
+                </Button>
+              </div>
               <Link href="/profile">
                 <Button size="sm" className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700">
                   View Profile
@@ -470,6 +413,7 @@ export default function ClientDashboardPage() {
         </Card>
 
         {showConnectionsPanel && <ConnectionRequestsPanel userId={user.id} />}
+        {showJobOffersPanel && <JobOffersPanel userId={user.id} role="CLIENT" />}
 
         {/* Connect with more people */}
         <Card className="bg-white/90 p-6 shadow-lg border-2 border-slate-200">
@@ -563,16 +507,6 @@ export default function ClientDashboardPage() {
             {workersError && (
               <Card className="border border-red-200 bg-red-50 p-4 text-center text-sm font-medium text-red-700">
                 {workersError}
-              </Card>
-            )}
-            {hireError && (
-              <Card className="border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
-                {hireError}
-              </Card>
-            )}
-            {hireMessage && (
-              <Card className="border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-700">
-                {hireMessage}
               </Card>
             )}
             {workersLoading ? (

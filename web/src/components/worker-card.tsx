@@ -110,7 +110,7 @@ export function WorkerCard({
           </>
         ) : (
           <>
-            <Link href={`/workers/${worker.id}`} className="flex-1">
+            <Link href={`/hire?workerId=${encodeURIComponent(worker.id)}`} className="flex-1">
               <Button
                 size="sm"
                 className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700"
