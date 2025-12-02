@@ -190,6 +190,7 @@ export default function ClientDashboardPage() {
     setStatsError(null);
 
     async function fetchStats() {
+      if (!user?.id) return;
       try {
         const response = await fetch(`/api/network-stats?userId=${user.id}`);
         const payload = (await response.json()) as { stats?: NetworkStats; message?: string };
