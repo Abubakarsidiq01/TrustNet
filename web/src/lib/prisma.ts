@@ -5,8 +5,7 @@ declare global {
 }
 
 if (!process.env.DATABASE_URL) {
-  // Default to local SQLite DB so API routes keep working even if env isn't loaded yet.
-  process.env.DATABASE_URL = "file:./dev.db";
+  throw new Error("DATABASE_URL environment variable is required");
 }
 
 export const prisma =
