@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export async function POST() {
@@ -36,7 +37,7 @@ export async function POST() {
         trade: "Electrician",
         city: "Lagos",
         area: "Ikeja",
-        skills: ["Electrical repair", "Wiring", "Installation"],
+        skills: ["Electrical repair", "Wiring", "Installation"] as Prisma.InputJsonValue,
         radiusKm: 10,
       },
     });

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
@@ -89,7 +90,20 @@ export async function POST(request: Request) {
       where: { userId },
     });
 
-    const profileData = {
+    const profileData: {
+      name: string;
+      trade: string;
+      city: string;
+      area: string;
+      state: string | null;
+      country: string | null;
+      fullAddress: string;
+      latitude: number;
+      longitude: number;
+      bio: string | null;
+      skills?: Prisma.InputJsonValue;
+      radiusKm: number | null;
+    } = {
       name,
       trade,
       city,
@@ -100,9 +114,13 @@ export async function POST(request: Request) {
       latitude,
       longitude,
       bio,
-      skills: skills && skills.length > 0 ? skills : null,
       radiusKm: radiusKm || null,
     };
+
+    // Only include skills if it has values, otherwise omit it (undefined)
+    if (skills && skills.length > 0) {
+      profileData.skills = skills as Prisma.InputJsonValue;
+    }
 
     const profile = await prisma.$transaction(async (tx) => {
       const savedProfile = existing

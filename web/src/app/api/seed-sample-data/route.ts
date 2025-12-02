@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 const workerSeeds = [
@@ -419,7 +420,7 @@ export async function POST() {
           trade: worker.trade,
           city: worker.city,
           area: worker.area,
-          skills: worker.skills,
+          skills: worker.skills as Prisma.InputJsonValue,
           pathToYou: worker.pathToYou,
           networkSteps: worker.networkSteps,
           ...workerLocationFields,
@@ -430,7 +431,7 @@ export async function POST() {
           trade: worker.trade,
           city: worker.city,
           area: worker.area,
-          skills: worker.skills,
+          skills: worker.skills as Prisma.InputJsonValue,
           pathToYou: worker.pathToYou,
           networkSteps: worker.networkSteps,
           ...workerLocationFields,
