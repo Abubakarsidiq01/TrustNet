@@ -32,13 +32,22 @@ END $$;
 -- Alter User table to use UserRole enum
 ALTER TABLE "User" ALTER COLUMN "role" TYPE "UserRole" USING "role"::"UserRole";
 
--- Alter Job table to use enum types
+-- Alter Job table to use enum types (handle defaults)
+ALTER TABLE "Job" ALTER COLUMN "status" DROP DEFAULT;
 ALTER TABLE "Job" ALTER COLUMN "status" TYPE "JobStatus" USING "status"::"JobStatus";
+ALTER TABLE "Job" ALTER COLUMN "status" SET DEFAULT 'PENDING'::"JobStatus";
+
+ALTER TABLE "Job" ALTER COLUMN "verificationStatus" DROP DEFAULT;
 ALTER TABLE "Job" ALTER COLUMN "verificationStatus" TYPE "VerificationStatus" USING "verificationStatus"::"VerificationStatus";
+ALTER TABLE "Job" ALTER COLUMN "verificationStatus" SET DEFAULT 'UNVERIFIED'::"VerificationStatus";
 
--- Alter Review table to use ReviewVisibility enum
+-- Alter Review table to use ReviewVisibility enum (handle default)
+ALTER TABLE "Review" ALTER COLUMN "visibility" DROP DEFAULT;
 ALTER TABLE "Review" ALTER COLUMN "visibility" TYPE "ReviewVisibility" USING "visibility"::"ReviewVisibility";
+ALTER TABLE "Review" ALTER COLUMN "visibility" SET DEFAULT 'PUBLIC'::"ReviewVisibility";
 
--- Alter ConnectionRequest table to use ConnectionRequestStatus enum
+-- Alter ConnectionRequest table to use ConnectionRequestStatus enum (handle default)
+ALTER TABLE "ConnectionRequest" ALTER COLUMN "status" DROP DEFAULT;
 ALTER TABLE "ConnectionRequest" ALTER COLUMN "status" TYPE "ConnectionRequestStatus" USING "status"::"ConnectionRequestStatus";
+ALTER TABLE "ConnectionRequest" ALTER COLUMN "status" SET DEFAULT 'PENDING'::"ConnectionRequestStatus";
 
