@@ -16,12 +16,52 @@ interface WorkerDetail extends WorkerSummary {
   email?: string;
 }
 
+interface Review {
+  id: string;
+  text: string;
+  ratings: {
+    punctuality: number;
+    communication: number;
+    pricing: number;
+    skill: number;
+  };
+  sentimentScore: number;
+  isReferralBased: boolean;
+  createdAt: string;
+  reviewer: {
+    name: string;
+  };
+  job: {
+    id: string;
+    title: string;
+  };
+}
+
+interface AggregatedRatings {
+  punctuality: number;
+  communication: number;
+  pricingFairness: number;
+  skill: number;
+  overall: number;
+  sentiment: number;
+}
+
+interface AvailableJob {
+  id: string;
+  title: string;
+  createdAt: string;
+}
+
 export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
   const [worker, setWorker] = useState<WorkerDetail | null>(null);
   const [peers, setPeers] = useState<WorkerSummary[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [aggregatedRatings, setAggregatedRatings] = useState<AggregatedRatings | null>(null);
+  const [availableJobs, setAvailableJobs] = useState<AvailableJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openReview, setOpenReview] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -34,6 +74,9 @@ export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
         const payload = (await response.json()) as {
           worker?: WorkerDetail;
           peers?: WorkerSummary[];
+          reviews?: Review[];
+          aggregatedRatings?: AggregatedRatings;
+          availableJobs?: AvailableJob[];
           message?: string;
         };
         if (!response.ok) {
@@ -42,6 +85,9 @@ export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
         if (!active) return;
         setWorker(payload.worker ?? null);
         setPeers(payload.peers ?? []);
+        setReviews(payload.reviews ?? []);
+        setAggregatedRatings(payload.aggregatedRatings ?? null);
+        setAvailableJobs(payload.availableJobs ?? []);
       } catch (err) {
         if (!active) return;
         setError(err instanceof Error ? err.message : "Unable to load worker.");
@@ -245,74 +291,106 @@ export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
               <div className="text-base font-bold text-slate-900">Reviews</div>
               <button
                 className="text-sm font-medium text-teal-600 underline-offset-2 hover:text-teal-700 hover:underline"
-                onClick={() => setOpenReview(true)}
+                onClick={() => {
+                  if (availableJobs.length > 0) {
+                    setSelectedJobId(availableJobs[0].id);
+                  }
+                  setOpenReview(true);
+                }}
               >
                 Leave review or referral
               </button>
             </div>
-            <div className="space-y-4">
-              {[
-                {
-                  client: "Aisha",
-                  when: "2 weeks ago",
-                  fromReferral: true,
-                  text: "Reliable, quick and explains what he is doing.",
-                  ratings: { punctuality: 4, communication: 5, pricing: 4, skill: 5 },
-                },
-                {
-                  client: "Farouk",
-                  when: "1 month ago",
-                  fromReferral: false,
-                  text: "Neat work and fair pricing, came back next day to double check.",
-                  ratings: { punctuality: 5, communication: 4, pricing: 5, skill: 5 },
-                },
-              ].map((r) => (
-                <div
-                  key={r.client + r.when}
-                  className="rounded-xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center text-xs font-bold text-white">
-                        {r.client[0]}
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900">{r.client}</div>
-                        <div className="text-[10px] text-slate-500">{r.when}</div>
-                      </div>
-                    </div>
-                    <span className={`rounded-full px-3 py-1 text-[10px] font-semibold ${
-                        r.fromReferral
-                          ? "bg-gradient-to-r from-violet-100 to-purple-100 text-violet-700"
-                          : "bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700"
-                      }`}>
-                      {r.fromReferral ? "From referral" : "Direct"}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Punctuality</span>
-                      <span className="font-bold text-amber-600">{r.ratings.punctuality}/5</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Communication</span>
-                      <span className="font-bold text-blue-600">{r.ratings.communication}/5</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Pricing</span>
-                      <span className="font-bold text-emerald-600">{r.ratings.pricing}/5</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Skill</span>
-                      <span className="font-bold text-violet-600">{r.ratings.skill}/5</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-800 mb-2">{r.text}</p>
-                  <button className="text-xs font-medium text-teal-600 underline-offset-2 hover:text-teal-700 hover:underline">
-                    See referral path →
-                  </button>
+            {aggregatedRatings && reviews.length > 0 && (
+              <div className="mb-4 rounded-xl border-2 border-teal-200 bg-gradient-to-br from-teal-50 to-emerald-50 p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-teal-700 mb-3">
+                  Overall Ratings
                 </div>
-              ))}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div>
+                    <div className="text-slate-600">Overall</div>
+                    <div className="text-lg font-bold text-teal-600">{aggregatedRatings.overall.toFixed(1)}/5</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-600">Sentiment</div>
+                    <div className="text-lg font-bold text-violet-600">{(aggregatedRatings.sentiment * 100).toFixed(0)}%</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-600">Punctuality</div>
+                    <div className="text-lg font-bold text-amber-600">{aggregatedRatings.punctuality.toFixed(1)}/5</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-600">Communication</div>
+                    <div className="text-lg font-bold text-blue-600">{aggregatedRatings.communication.toFixed(1)}/5</div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="space-y-4">
+              {reviews.length === 0 ? (
+                <div className="text-center py-8 text-sm text-slate-500">
+                  No reviews yet. Be the first to review this worker!
+                </div>
+              ) : (
+                reviews.map((r) => {
+                  const date = new Date(r.createdAt);
+                  const when = date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined });
+                  return (
+                    <div
+                      key={r.id}
+                      className="rounded-xl border-2 border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center text-xs font-bold text-white">
+                            {r.reviewer.name[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-slate-900">{r.reviewer.name}</div>
+                            <div className="text-[10px] text-slate-500">{when}</div>
+                          </div>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-[10px] font-semibold ${
+                            r.isReferralBased
+                              ? "bg-gradient-to-r from-violet-100 to-purple-100 text-violet-700"
+                              : "bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700"
+                          }`}>
+                          {r.isReferralBased ? "From referral" : "Direct"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600">Punctuality</span>
+                          <span className="font-bold text-amber-600">{r.ratings.punctuality}/5</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600">Communication</span>
+                          <span className="font-bold text-blue-600">{r.ratings.communication}/5</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600">Pricing</span>
+                          <span className="font-bold text-emerald-600">{r.ratings.pricing}/5</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600">Skill</span>
+                          <span className="font-bold text-violet-600">{r.ratings.skill}/5</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-800 mb-2">{r.text}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-slate-500">
+                          Sentiment: {(r.sentimentScore * 100).toFixed(0)}%
+                        </span>
+                        {r.isReferralBased && (
+                          <button className="text-xs font-medium text-teal-600 underline-offset-2 hover:text-teal-700 hover:underline">
+                            See referral path →
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </Card>
@@ -352,7 +430,12 @@ export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
           <Button
             variant="outline"
             size="lg"
-            onClick={() => setOpenReview(true)}
+            onClick={() => {
+              if (availableJobs.length > 0) {
+                setSelectedJobId(availableJobs[0].id);
+              }
+              setOpenReview(true);
+            }}
             className="border-2"
           >
             Leave review or referral
@@ -366,7 +449,27 @@ export default function WorkerProfilePage({ params }: WorkerProfilePageProps) {
         </div>
       </div>
 
-      <ReviewModal open={openReview} onClose={() => setOpenReview(false)} />
+      <ReviewModal
+        open={openReview}
+        onClose={() => {
+          setOpenReview(false);
+          setSelectedJobId(null);
+        }}
+        jobId={selectedJobId || undefined}
+        workerId={worker.id}
+        onSuccess={() => {
+          // Refetch worker data to show new review
+          fetch(`/api/workers/${params.id}`)
+            .then((res) => res.json())
+            .then((data) => {
+              setReviews(data.reviews ?? []);
+              setAggregatedRatings(data.aggregatedRatings ?? null);
+              if (data.worker) {
+                setWorker({ ...worker, ...data.worker });
+              }
+            });
+        }}
+      />
     </div>
   );
 }

@@ -15,6 +15,7 @@ export function ConnectionRequestsPanel({ userId }: ConnectionRequestsPanelProps
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [decliningId, setDecliningId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -74,6 +75,29 @@ export function ConnectionRequestsPanel({ userId }: ConnectionRequestsPanelProps
     }
   }
 
+  async function handleDecline(requestId: string) {
+    setDecliningId(requestId);
+    setError(null);
+    try {
+      const response = await fetch("/api/connections/requests/decline", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ requestId, userId }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.message ?? "Unable to decline this connection request.");
+      }
+      setRefreshKey((value) => value + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to decline this connection request.");
+    } finally {
+      setDecliningId(null);
+    }
+  }
+
   if (loading) {
     return (
       <Card className="bg-white/90 p-6 shadow-lg border-2 border-slate-200">
@@ -115,14 +139,25 @@ export function ConnectionRequestsPanel({ userId }: ConnectionRequestsPanelProps
                     key={request.requestId}
                     worker={request.summary}
                     footerContent={
-                      <Button
-                        size="sm"
-                        className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700"
-                        onClick={() => handleAccept(request.requestId)}
-                        disabled={acceptingId === request.requestId}
-                      >
-                        {acceptingId === request.requestId ? "Accepting..." : "Accept"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
+                          onClick={() => handleDecline(request.requestId)}
+                          disabled={decliningId === request.requestId || acceptingId === request.requestId}
+                        >
+                          {decliningId === request.requestId ? "Declining..." : "Decline"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700"
+                          onClick={() => handleAccept(request.requestId)}
+                          disabled={acceptingId === request.requestId || decliningId === request.requestId}
+                        >
+                          {acceptingId === request.requestId ? "Accepting..." : "Accept"}
+                        </Button>
+                      </div>
                     }
                   />
                 ))}

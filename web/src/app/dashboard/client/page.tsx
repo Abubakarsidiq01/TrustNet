@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { WorkerCard } from "@/components/worker-card";
 import { ConnectionRequestsPanel } from "@/components/connection-requests-panel";
+import { JobOffersPanel } from "@/components/job-offers-panel";
 import { useUserStore } from "@/store/user-store";
 import type {
   AuthUser,
@@ -27,6 +28,7 @@ export default function ClientDashboardPage() {
   const [connectionSuccess, setConnectionSuccess] = useState<string | null>(null);
   const [sendingRequestId, setSendingRequestId] = useState<string | null>(null);
   const [showConnectionsPanel, setShowConnectionsPanel] = useState(false);
+  const [showJobOffersPanel, setShowJobOffersPanel] = useState(false);
   const [recommendedWorkers, setRecommendedWorkers] = useState<WorkerSummary[]>([]);
   const [workersLoading, setWorkersLoading] = useState(true);
   const [workersError, setWorkersError] = useState<string | null>(null);
@@ -395,6 +397,13 @@ export default function ClientDashboardPage() {
               >
                 {showConnectionsPanel ? "Hide Requests" : "Connection Requests"}
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowJobOffersPanel((prev) => !prev)}
+              >
+                {showJobOffersPanel ? "Hide Jobs" : "My Jobs"}
+              </Button>
               <Link href="/profile">
                 <Button size="sm" className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700">
                   View Profile
@@ -471,6 +480,7 @@ export default function ClientDashboardPage() {
         </Card>
 
         {showConnectionsPanel && <ConnectionRequestsPanel userId={user.id} />}
+        {showJobOffersPanel && user && <JobOffersPanel userId={user.id} role="CLIENT" />}
 
         {/* Connect with more people */}
         <Card className="bg-white/90 p-6 shadow-lg border-2 border-slate-200">

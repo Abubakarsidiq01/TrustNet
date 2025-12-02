@@ -6,47 +6,93 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useGraphStore } from "@/store/graph-store";
-import { ReferralGraph } from "@/components/referral-graph";
+import { NetworkGraph } from "@/components/network-graph";
+import { useUserStore } from "@/store/user-store";
 import { useEffect, useState } from "react";
-import type { WorkerSummary } from "@/lib/types";
+
+interface NetworkNode {
+  id: string;
+  label: string;
+  type: "user" | "worker" | "client";
+  userId?: string;
+  workerId?: string;
+  clientId?: string;
+  trustScore?: number;
+  trade?: string;
+  location?: string;
+}
+
+interface NetworkEdge {
+  from: string;
+  to: string;
+  type: "connection" | "job" | "referral";
+  label?: string;
+  jobId?: string;
+  reviewId?: string;
+}
+
+interface NetworkStats {
+  totalConnections: number;
+  totalWorkers: number;
+  totalJobs: number;
+  totalReferrals: number;
+  averageTrustScore: number;
+}
 
 export default function GraphPage() {
   const { filters, setFilters } = useGraphStore();
+  const { user } = useUserStore();
   const router = useRouter();
   const [, setZoomLevel] = useState(1);
-  const [workers, setWorkers] = useState<WorkerSummary[]>([]);
-  const [loadingWorkers, setLoadingWorkers] = useState(true);
-  const [workersError, setWorkersError] = useState<string | null>(null);
+  const [nodes, setNodes] = useState<NetworkNode[]>([]);
+  const [edges, setEdges] = useState<NetworkEdge[]>([]);
+  const [stats, setStats] = useState<NetworkStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user?.id) {
+      setError("Please sign in to view your network graph.");
+      setLoading(false);
+      return;
+    }
+
+    const userId = user.id; // Store in local variable to avoid null check issues
     let active = true;
-    async function fetchWorkers() {
+    async function fetchNetworkGraph() {
       try {
-        setLoadingWorkers(true);
-        setWorkersError(null);
-        const response = await fetch("/api/workers/summaries?limit=20");
-        const payload = (await response.json()) as { workers?: WorkerSummary[]; message?: string };
+        setLoading(true);
+        setError(null);
+        const response = await fetch(`/api/network-graph?userId=${userId}`);
+        const payload = (await response.json()) as {
+          nodes?: NetworkNode[];
+          edges?: NetworkEdge[];
+          stats?: NetworkStats;
+          message?: string;
+        };
         if (!response.ok) {
-          throw new Error(payload?.message ?? "Unable to load workers.");
+          throw new Error(payload?.message ?? "Unable to load network graph.");
         }
         if (!active) return;
-        setWorkers(payload.workers ?? []);
+        setNodes(payload.nodes ?? []);
+        setEdges(payload.edges ?? []);
+        setStats(payload.stats ?? null);
       } catch (err) {
         if (!active) return;
-        setWorkersError(err instanceof Error ? err.message : "Unable to load workers.");
+        setError(err instanceof Error ? err.message : "Unable to load network graph.");
       } finally {
         if (active) {
-          setLoadingWorkers(false);
+          setLoading(false);
         }
       }
     }
 
-    fetchWorkers();
+    fetchNetworkGraph();
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [user?.id]);
 
   return (
     <div className="min-h-screen bg-neutral-50 px-4 py-6">
@@ -122,30 +168,36 @@ export default function GraphPage() {
               </div>
             </div>
 
-            {/* Real graph component */}
-            {workersError ? (
+            {/* Real network graph component */}
+            {error ? (
               <div className="flex h-full items-center justify-center text-sm text-red-400">
-                {workersError}
+                {error}
               </div>
-            ) : loadingWorkers ? (
+            ) : loading ? (
               <div className="flex h-full items-center justify-center text-sm text-neutral-100">
-                Loading graph...
+                Loading network graph...
+              </div>
+            ) : nodes.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm text-neutral-100">
+                No connections yet. Start by connecting with people and hiring workers!
               </div>
             ) : (
-              <ReferralGraph
-                workers={workers}
-                minTrust={filters.minTrust}
-                distance={
-                  filters.distance === "YOU"
-                    ? "you"
-                    : filters.distance === "ONE"
-                      ? "one"
-                      : filters.distance === "TWO"
-                        ? "two"
-                        : "all"
-                }
-                onNodeClick={(nodeId) => {
-                  router.push(`/workers/${nodeId}`);
+              <NetworkGraph
+                nodes={nodes.filter((node) => {
+                  // Filter by trust score for workers
+                  if (node.type === "worker" && node.trustScore !== undefined) {
+                    return node.trustScore >= filters.minTrust;
+                  }
+                  return true;
+                })}
+                edges={edges}
+                onNodeClick={(nodeId, type) => {
+                  if (type === "worker") {
+                    router.push(`/workers/${nodeId}`);
+                  } else if (type === "client") {
+                    // Could navigate to client profile if we had one
+                    console.log("Client clicked:", nodeId);
+                  }
                 }}
               />
             )}
@@ -159,6 +211,39 @@ export default function GraphPage() {
               </button>
               <button className="pb-1 text-neutral-500">Details</button>
             </div>
+
+            {/* Network Statistics */}
+            {stats && (
+              <div className="mt-3 space-y-3 rounded-lg border-2 border-teal-200 bg-gradient-to-br from-teal-50 to-emerald-50 p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-teal-700">
+                  Network Stats
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                  <div>
+                    <div className="text-slate-600">Connections</div>
+                    <div className="text-base font-bold text-teal-600">{stats.totalConnections}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-600">Workers</div>
+                    <div className="text-base font-bold text-blue-600">{stats.totalWorkers}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-600">Jobs</div>
+                    <div className="text-base font-bold text-emerald-600">{stats.totalJobs}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-600">Referrals</div>
+                    <div className="text-base font-bold text-violet-600">{stats.totalReferrals}</div>
+                  </div>
+                </div>
+                {stats.averageTrustScore > 0 && (
+                  <div className="pt-2 border-t border-teal-200">
+                    <div className="text-slate-600 text-[10px]">Avg Trust Score</div>
+                    <div className="text-lg font-bold text-teal-600">{Math.round(stats.averageTrustScore)}</div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="mt-3 space-y-4">
               {/* Distance slider (simple buttons) */}
