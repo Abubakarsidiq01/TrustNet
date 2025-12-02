@@ -1,13 +1,13 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useUserStore } from "@/store/user-store";
 import type { AuthUser, UserRole } from "@/lib/types";
 type AuthMode = "signin" | "signup";
 
-export default function SignInPage() {
+function SignInInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setUser } = useUserStore();
@@ -262,6 +262,20 @@ export default function SignInPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-200 text-sm">
+          Loading sign-in...
+        </div>
+      }
+    >
+      <SignInInner />
+    </Suspense>
   );
 }
 

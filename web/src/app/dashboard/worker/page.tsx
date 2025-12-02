@@ -63,10 +63,11 @@ export default function WorkerDashboardPage() {
     }
 
     let active = true;
+    const currentUserId = user.id;
 
     async function refreshProfile() {
       try {
-        const response = await fetch(`/api/users/${user.id}`);
+        const response = await fetch(`/api/users/${currentUserId}`);
         if (!response.ok) {
           throw new Error("Unable to fetch profile");
         }
@@ -89,7 +90,7 @@ export default function WorkerDashboardPage() {
     return () => {
       active = false;
     };
-  }, [hydrated, setUser, user?.id]);
+    }, [hydrated, setUser, user?.id]);
 
   useEffect(() => {
     if (hydrated && !loadingProfile && !user?.id) {
@@ -149,10 +150,11 @@ export default function WorkerDashboardPage() {
     }
 
     let active = true;
+    const currentWorkerId = user.id;
 
     async function fetchStats() {
       try {
-        const response = await fetch(`/api/worker-dashboard-stats?userId=${user.id}`);
+        const response = await fetch(`/api/worker-dashboard-stats?userId=${currentWorkerId}`);
         if (!response.ok) {
           throw new Error("Unable to fetch dashboard stats");
         }

@@ -51,10 +51,11 @@ export default function ClientOnboardingPage() {
     }
 
     let active = true;
+    const currentUserId = user.id;
 
     async function loadProfile() {
       try {
-        const response = await fetch(`/api/client-profile?userId=${user.id}`);
+        const response = await fetch(`/api/client-profile?userId=${currentUserId}`);
         if (!response.ok) {
           if (active) {
             setPrefillLoading(false);

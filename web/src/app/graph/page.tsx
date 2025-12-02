@@ -135,7 +135,15 @@ export default function GraphPage() {
               <ReferralGraph
                 workers={workers}
                 minTrust={filters.minTrust}
-                distance={filters.distance.toLowerCase()}
+                distance={
+                  filters.distance === "YOU"
+                    ? "you"
+                    : filters.distance === "ONE"
+                      ? "one"
+                      : filters.distance === "TWO"
+                        ? "two"
+                        : "all"
+                }
                 onNodeClick={(nodeId) => {
                   router.push(`/workers/${nodeId}`);
                 }}

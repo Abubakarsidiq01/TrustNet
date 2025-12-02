@@ -57,10 +57,11 @@ export default function WorkerOnboardingPage() {
     }
 
     let active = true;
+    const currentUserId = user.id;
 
     async function loadProfile() {
       try {
-        const response = await fetch(`/api/worker-profile?userId=${user.id}`);
+        const response = await fetch(`/api/worker-profile?userId=${currentUserId}`);
         if (!response.ok) {
           if (active) {
             setPrefillLoading(false);

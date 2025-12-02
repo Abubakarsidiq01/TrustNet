@@ -15,6 +15,8 @@ interface WorkerProfile {
   trade: string;
   city: string;
   area: string;
+  state?: string | null;
+  country?: string | null;
   fullAddress?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -29,6 +31,8 @@ interface ClientProfile {
   name: string;
   city: string;
   area: string;
+  state?: string | null;
+  country?: string | null;
   fullAddress?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -73,11 +77,12 @@ export default function ProfilePage() {
     }
 
     let active = true;
+    const currentUser = user;
 
     async function fetchProfile() {
       try {
-        if (user.role === "WORKER") {
-          const response = await fetch(`/api/worker-profile?userId=${user.id}`);
+        if (currentUser.role === "WORKER") {
+          const response = await fetch(`/api/worker-profile?userId=${currentUser.id}`);
           if (!response.ok) {
             if (response.status === 404) {
               throw new Error("Profile not found. Please complete onboarding first.");
@@ -88,8 +93,8 @@ export default function ProfilePage() {
           if (!active) return;
           setWorkerProfile(data.profile);
           setError(null);
-        } else if (user.role === "CLIENT") {
-          const response = await fetch(`/api/client-profile?userId=${user.id}`);
+        } else if (currentUser.role === "CLIENT") {
+          const response = await fetch(`/api/client-profile?userId=${currentUser.id}`);
           if (!response.ok) {
             if (response.status === 404) {
               throw new Error("Profile not found. Please complete onboarding first.");
@@ -134,10 +139,11 @@ export default function ProfilePage() {
     }
 
     let active = true;
+    const currentUserId = user.id;
 
     async function fetchNetwork() {
       try {
-        const response = await fetch(`/api/connections/network?userId=${user.id}`);
+        const response = await fetch(`/api/connections/network?userId=${currentUserId}`);
         const payload = (await response.json()) as { entries?: ConnectionNetworkEntry[]; message?: string };
         if (!response.ok) {
           throw new Error(payload?.message ?? "Unable to load your network.");

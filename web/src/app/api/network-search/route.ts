@@ -57,10 +57,10 @@ export async function GET(request: Request) {
     const profiles = await prisma.workerProfile.findMany({
       where: {
         OR: [
-          { name: { contains: query, mode: "insensitive" } },
-          { trade: { contains: query, mode: "insensitive" } },
-          { city: { contains: query, mode: "insensitive" } },
-          { area: { contains: query, mode: "insensitive" } },
+          { name: { contains: query } },
+          { trade: { contains: query } },
+          { city: { contains: query } },
+          { area: { contains: query } },
         ],
       },
       include,

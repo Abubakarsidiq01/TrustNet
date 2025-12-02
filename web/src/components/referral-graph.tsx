@@ -43,14 +43,16 @@ export function ReferralGraph({
       (w) => w.trust.total >= minTrust
     );
 
-    // Filter by distance
+    // Filter by distance (guard against undefined inYourNetworkSteps)
     let workersToShow = filteredWorkers;
     if (distance === "you") {
       workersToShow = []; // Only show "You" node
     } else if (distance === "one") {
       workersToShow = filteredWorkers.filter((w) => w.inYourNetworkSteps === 1);
     } else if (distance === "two") {
-      workersToShow = filteredWorkers.filter((w) => w.inYourNetworkSteps <= 2);
+      workersToShow = filteredWorkers.filter(
+        (w) => typeof w.inYourNetworkSteps === "number" && w.inYourNetworkSteps <= 2,
+      );
     }
     // "all" shows all filtered workers
 
@@ -60,7 +62,7 @@ export function ReferralGraph({
         id: "you",
         label: "You",
         color: { background: "#fbbf24", border: "#f59e0b" },
-        font: { color: "#000", size: 14, face: "Lexend Deca", bold: true },
+        font: { color: "#000", size: 14, face: "Lexend Deca" },
         shape: "circle",
         size: 30,
         borderWidth: 3,
@@ -161,6 +163,7 @@ export function ReferralGraph({
       },
       edges: {
         smooth: {
+          enabled: true,
           type: "continuous",
           roundness: 0.5,
         },
